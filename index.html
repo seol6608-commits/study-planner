@@ -351,6 +351,7 @@ body{
 }
 .badge.exam{background:rgba(63,107,142,.14);color:var(--blue-deep);}
 .badge.assignment{background:rgba(94,135,168,.16);color:#4A7A9E;}
+.badge.present{background:rgba(78,134,160,.16);color:#39708A;}
 .badge.etc{background:rgba(157,180,196,.20);color:#647C8C;}
 .badge.custom{background:rgba(92,147,166,.16);color:#3F7E8E;}
 .badge.todo{background:rgba(122,141,155,.16);color:#7A8D9B;}
@@ -490,10 +491,23 @@ body{
 }
 .tt-block.exam{background:var(--blue-deep);}
 .tt-block.assignment{background:var(--blue-main);}
+.tt-block.present{background:#4E86A0;}
 .tt-block.etc{background:#8AA6BC;}
 .tt-block.custom{background:#5C93A6;}
 .tt-block.done{opacity:.4;}
 .tt-block.done .b-title{text-decoration:line-through;}
+/* 유형 변경 가능한 뱃지 */
+.badge.editable{cursor:pointer;}
+.badge.editable::after{content:" ⌄";opacity:.5;font-size:9px;}
+.type-opts{display:flex;flex-wrap:wrap;gap:8px;}
+.type-opt{
+  flex:1 1 40%;
+  font-family:var(--font-ko);font-size:14px;
+  padding:11px 0;border-radius:10px;cursor:pointer;
+  border:1px solid var(--line);background:#fff;color:var(--text);
+}
+.type-opt:hover{background:var(--blue-bg);border-color:var(--blue-main);}
+.type-opt.cur{background:var(--blue-main);color:#fff;border-color:var(--blue-main);}
 
 /* ============================================================
    세로 모드 전용 추가 버튼 (FAB) + 길게 누르기 표시 — 기본값
@@ -921,6 +935,24 @@ body{
   </div>
 </div>
 
+<!-- ===================== 유형 변경 모달 ===================== -->
+<div class="modal-back" id="typeBack">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="m-head" id="typeHead">유형 변경</div>
+    <div class="m-body">
+      <div class="type-opts">
+        <button class="type-opt" data-type="exam">시험</button>
+        <button class="type-opt" data-type="assignment">과제</button>
+        <button class="type-opt" data-type="present">발표</button>
+        <button class="type-opt" data-type="etc">기타</button>
+      </div>
+    </div>
+    <div class="m-actions">
+      <button class="btn-cancel" id="cancelType">취소</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===================== 일정 추가 모달 ===================== -->
 <div class="modal-back" id="modalBack">
   <div class="modal" role="dialog" aria-modal="true">
@@ -936,6 +968,7 @@ body{
           <select id="mType">
             <option value="exam">시험</option>
             <option value="assignment">과제</option>
+            <option value="present">발표</option>
             <option value="etc" selected>기타</option>
             <option value="custom">직접 입력</option>
           </select>
@@ -977,8 +1010,8 @@ body{
  *  스키마: { id, title, type, customType?, date, startTime?, endTime?, memo?, source }
  *  type: "exam" | "assignment" | "etc" | "custom"
  * ========================================================================== */
-const TYPE_LABEL = { exam:"시험", assignment:"과제", etc:"기타", custom:"기타", todo:"할일" };
-const TYPE_PRIORITY = { exam:0, assignment:1, etc:2, custom:3, todo:4 }; // 시험·과제 우선
+const TYPE_LABEL = { exam:"시험", assignment:"과제", present:"발표", etc:"기타", custom:"기타", todo:"할일" };
+const TYPE_PRIORITY = { exam:0, assignment:1, present:2, etc:3, custom:4, todo:5 }; // 시험·과제·발표 우선
 
 const SAMPLE_EVENTS = [
   // 기본 일정 없음 — 사용자가 추가한 일정/할일만 표시됩니다.
@@ -1020,6 +1053,13 @@ const LocalStorageAdapter = {
   },
   setDeleted(arr){
     try { localStorage.setItem("planner:deleted", JSON.stringify(arr)); } catch(e){}
+  },
+  getTypeMap(){
+    try { return JSON.parse(localStorage.getItem("planner:typeMap") || "{}"); }
+    catch(e){ return {}; }
+  },
+  setTypeMap(map){
+    try { localStorage.setItem("planner:typeMap", JSON.stringify(map)); } catch(e){}
   }
 };
 
@@ -1033,8 +1073,13 @@ const CloudSyncAdapter = {
   async setDoneMap(map){ /* TODO */ },
   async getDeleted(){ /* TODO */ return []; },
   async setDeleted(arr){ /* TODO */ },
+  async getTypeMap(){ /* TODO */ return {}; },
+  async setTypeMap(map){ /* TODO */ },
   async fetchEvents(){ /* TODO: 원격 events 컬렉션 읽기 */ return []; }
 };
+
+/* 사용자가 지정한 유형(자동분류보다 우선) — id 기준 */
+let typeOverrides = {};
 
 /* 현재 활성 저장소 — 이 줄만 바꾸면 전체가 클라우드로 전환됨 */
 const Storage = LocalStorageAdapter;
@@ -1157,6 +1202,11 @@ function wasConnected(){
   try{ return localStorage.getItem(CONN_KEY) === '1'; }catch(e){ return false; }
 }
 
+const TYPE_TAGS = { exam:'[시험]', assignment:'[과제]', present:'[발표]', etc:'[기타]' };
+/* 제목 앞 유형 태그 제거(표시·재태깅용) */
+function stripTypeTag(s){
+  return (s || '').replace(/^\s*\[\s*(시험|과제|발표|기타)\s*\]\s*/, '').trim();
+}
 /* 유형 자동 분류: 대괄호 태그 우선 → 키워드 추론 → 기타 */
 function classifyType(title, desc){
   const raw = ((title||'') + ' ' + (desc||''));
@@ -1164,9 +1214,12 @@ function classifyType(title, desc){
   const has = (arr)=>arr.some(k => t.includes(k));
   if(/\[\s*시험\s*\]/.test(raw)) return 'exam';
   if(/\[\s*과제\s*\]/.test(raw)) return 'assignment';
+  if(/\[\s*발표\s*\]/.test(raw)) return 'present';
   if(/\[\s*기타\s*\]/.test(raw)) return 'etc';
   if(has(['시험','고사','중간','기말','exam','test','quiz','퀴즈'])) return 'exam';
   if(has(['과제','숙제','제출','레포트','리포트','assignment','homework','hw','due'])) return 'assignment';
+  // 발표 관련 키워드(PT 제외)
+  if(has(['발표회','구두발표','조별발표','팀발표','발표','프레젠테이션','presentation','세미나','브리핑'])) return 'present';
   return 'etc';
 }
 
@@ -1177,8 +1230,8 @@ function normalizeGoogleCalendarEvent(raw){
   const timed = start.length > 10;
   return {
     id: raw.id,
-    title: raw.summary || "(제목 없음)",
-    type: classifyType(raw.summary, raw.description),
+    title: stripTypeTag(raw.summary) || "(제목 없음)",   // 표시용 제목(태그 제거)
+    type: typeOverrides[raw.id] || classifyType(raw.summary, raw.description),  // 사용자 지정 우선
     date: (start || "").slice(0,10),
     startTime: timed ? start.slice(11,16) : undefined,
     endTime:   end.length>10 ? end.slice(11,16) : undefined,
@@ -1203,6 +1256,65 @@ async function fetchGoogleCalendarEvents(timeMin, timeMax){
   }
   const data = await res.json();
   return (data.items || []).map(normalizeGoogleCalendarEvent).filter(e => e.date);
+}
+
+/* 다음날(YYYY-MM-DD) — 종일 일정 end.date(배타적)용 */
+function nextDayStr(dateStr){
+  const d = parseDate(dateStr); d.setDate(d.getDate()+1); return fmt(d);
+}
+/* 내부 일정 → 구글 이벤트 본문. 유형은 제목 태그로 보존 */
+function toGoogleBody(evt){
+  const tag = TYPE_TAGS[evt.type] ? TYPE_TAGS[evt.type] + ' ' : '';
+  const body = {
+    summary: tag + stripTypeTag(evt.title || ''),
+    description: evt.memo || ''
+  };
+  if(evt.startTime && evt.endTime){
+    body.start = { dateTime: `${evt.date}T${evt.startTime}:00`, timeZone: 'Asia/Seoul' };
+    body.end   = { dateTime: `${evt.date}T${evt.endTime}:00`,   timeZone: 'Asia/Seoul' };
+  } else {
+    body.start = { date: evt.date };
+    body.end   = { date: nextDayStr(evt.date) };
+  }
+  return body;
+}
+async function gcalInsertEvent(evt){
+  const url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify(toGoogleBody(evt))
+  });
+  if(!res.ok){
+    if(res.status === 401){ accessToken = null; tokenExpiry = 0; updateAuthUI(); }
+    throw new Error('Calendar insert failed: ' + res.status);
+  }
+  return res.json();
+}
+async function gcalDeleteEvent(googleId){
+  const url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events/' + encodeURIComponent(googleId);
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers: { Authorization: 'Bearer ' + accessToken }
+  });
+  // 204 성공, 410은 이미 삭제됨 — 둘 다 OK 취급
+  if(!res.ok && res.status !== 410){
+    if(res.status === 401){ accessToken = null; tokenExpiry = 0; updateAuthUI(); }
+    throw new Error('Calendar delete failed: ' + res.status);
+  }
+}
+async function gcalPatchEvent(googleId, fields){
+  const url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events/' + encodeURIComponent(googleId);
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify(fields)
+  });
+  if(!res.ok){
+    if(res.status === 401){ accessToken = null; tokenExpiry = 0; updateAuthUI(); }
+    throw new Error('Calendar patch failed: ' + res.status);
+  }
+  return res.json();
 }
 function getEventsByDate(date){ return EventsStore.getByDate(date); }
 function getUpcomingEvents(fromDate, types){ return EventsStore.getUpcoming(fromDate || AppState.selectedDate, types); }
@@ -1301,7 +1413,7 @@ function renderPlannerPage(date){
 }
 
 function renderDday(date){
-  const upcoming = getUpcomingEvents(date, ['exam','assignment','etc']);
+  const upcoming = getUpcomingEvents(date, ['exam','assignment','present','etc']);
   const el = document.getElementById('fDday');
   if(!upcoming.length){ el.innerHTML = `<div class="val empty-line"></div>`; return; }
 
@@ -1338,8 +1450,11 @@ function buildTaskLine(e, showBadge){
 
   if(showBadge){
     const badge = document.createElement('span');
-    badge.className = 'badge ' + e.type;
+    badge.className = 'badge editable ' + e.type;
     badge.textContent = (e.type==='custom' && e.customType) ? e.customType : TYPE_LABEL[e.type];
+    badge.title = '유형 변경';
+    ['mousedown','touchstart'].forEach(ev => badge.addEventListener(ev, x=>x.stopPropagation()));
+    badge.addEventListener('click', (x)=>{ x.stopPropagation(); openTypePicker(e); });
     line.appendChild(badge);
   }
 
@@ -1356,7 +1471,15 @@ function buildTaskLine(e, showBadge){
   }
 
   const doDelete = ()=>{
-    if(confirm(`"${e.title}" 항목을 삭제할까요?`)){
+    if(!confirm(`"${e.title}" 항목을 삭제할까요?`)) return;
+    if(e.source === 'google-calendar' && isTokenValid()){
+      // 구글 일정 → 구글에서 삭제 후 다시 동기화
+      setSyncStatus('구글에서 삭제 중…');
+      gcalDeleteEvent(e.id)
+        .then(()=> syncFromGoogle())
+        .catch(err=>{ console.error(err); setSyncStatus('구글 삭제 실패 — 다시 시도', true); });
+    } else {
+      // 로컬 항목(할일·로컬 일정) → 로컬 삭제
       EventsStore.removeEvent(e.id);
       renderCalendar();
       renderPlannerPage(AppState.selectedDate);
@@ -1533,6 +1656,43 @@ document.getElementById('cancelMemo').addEventListener('click', closeMemoModal);
 document.getElementById('saveMemo').addEventListener('click', saveMemo);
 memoBack.addEventListener('click', (e)=>{ if(e.target === memoBack) closeMemoModal(); });
 
+/* ---------- 유형 변경 모달 ---------- */
+const typeBack = document.getElementById('typeBack');
+let typeTarget = null;   // 현재 변경 중인 이벤트
+function openTypePicker(e){
+  typeTarget = e;
+  document.getElementById('typeHead').textContent = '유형 변경 · ' + e.title;
+  document.querySelectorAll('.type-opt').forEach(b => b.classList.toggle('cur', b.dataset.type === e.type));
+  typeBack.classList.add('open');
+}
+function closeTypePicker(){ typeBack.classList.remove('open'); typeTarget = null; }
+function changeType(newType){
+  const e = typeTarget;
+  if(!e){ closeTypePicker(); return; }
+  if(e.type === newType){ closeTypePicker(); return; }
+  e.type = newType;
+  // 사용자 지정 기억 (자동분류보다 우선)
+  typeOverrides[e.id] = newType;
+  Storage.setTypeMap(typeOverrides);
+
+  if(e.source === 'google-calendar' && isTokenValid()){
+    // 구글 일정이면 제목 태그도 갱신
+    const tag = (newType !== 'etc' && TYPE_TAGS[newType]) ? TYPE_TAGS[newType] + ' ' : '';
+    const summary = tag + stripTypeTag(e.title);
+    gcalPatchEvent(e.id, { summary }).catch(err=> console.error(err));
+  } else if(String(e.id).startsWith('u-')){
+    // 로컬 일정이면 저장본도 갱신
+    EventsStore.persistUser();
+  }
+  closeTypePicker();
+  renderPlannerPage(AppState.selectedDate);
+}
+document.querySelectorAll('.type-opt').forEach(btn => {
+  btn.addEventListener('click', ()=> changeType(btn.dataset.type));
+});
+document.getElementById('cancelType').addEventListener('click', closeTypePicker);
+typeBack.addEventListener('click', (e)=>{ if(e.target === typeBack) closeTypePicker(); });
+
 /* ---------- 일정 추가 모달 ---------- */
 const modalBack = document.getElementById('modalBack');
 const mType = document.getElementById('mType');
@@ -1576,12 +1736,22 @@ document.getElementById('saveAdd').addEventListener('click', ()=>{
   if(start && end){ evt.startTime = start; evt.endTime = end; }
   if(memo) evt.memo = memo;
 
-  EventsStore.addEvent(evt);
   AppState.selectedDate = date;        // 추가한 날짜로 이동
   AppState.view = { year: parseDate(date).getFullYear(), month: parseDate(date).getMonth() };
   closeModal();
-  renderCalendar();
-  renderPlannerPage(AppState.selectedDate);
+
+  if(isTokenValid()){
+    // 연결됨 → 구글 캘린더에 직접 추가 후 다시 동기화 (중복 방지: 로컬 사본 안 만듦)
+    setSyncStatus('구글에 추가 중…');
+    gcalInsertEvent(evt)
+      .then(()=> syncFromGoogle())
+      .catch(err=>{ console.error(err); setSyncStatus('구글 추가 실패 — 로컬로 저장', true); EventsStore.addEvent(evt); renderCalendar(); renderPlannerPage(AppState.selectedDate); });
+  } else {
+    // 미연결 → 로컬 저장
+    EventsStore.addEvent(evt);
+    renderCalendar();
+    renderPlannerPage(AppState.selectedDate);
+  }
 });
 
 /* ---------- 할일 추가 모달 (세로 모드 전용 분리 동작) ---------- */
@@ -1712,6 +1882,7 @@ document.getElementById('gcalRefresh').addEventListener('click', ()=>{
 /* 초기화 */
 (function init(){
   EventsStore.load();                  // 저장된 사용자 일정 + 완료 상태 불러오기
+  typeOverrides = Storage.getTypeMap();   // 사용자가 지정한 유형 불러오기
   const t = parseDate(todayStr());
   AppState.view = { year: t.getFullYear(), month: t.getMonth() };
   renderCalendar();
