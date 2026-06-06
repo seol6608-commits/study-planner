@@ -406,20 +406,32 @@ body{
 }
 .quick-input::placeholder{color:#B6C5D0;}
 
-/* MEMO */
-.memo-area{
+/* MEMO (읽기 영역 + 버튼 → 모달 입력) */
+.memo-view{
   width:100%;
-  border:none;outline:none;resize:none;
+  min-height:140px;
+  margin-top:4px;
+  padding:0 2px;
   background:repeating-linear-gradient(
     transparent,transparent 27px,var(--line) 27px,var(--line) 28px);
   line-height:28px;
   font-family:var(--font-ko);
   font-size:13px;color:var(--text);
-  padding:0 2px;
-  height:140px;
-  margin-top:4px;
+  white-space:pre-wrap;word-break:break-word;
+  cursor:text;
 }
-.memo-area::placeholder{color:#B6C5D0;}
+.memo-view:empty::before{
+  content:attr(data-empty);
+  color:#B6C5D0;
+}
+.field.memo > h3{display:flex;align-items:center;justify-content:space-between;}
+.memo-edit{
+  font-family:var(--font-ko);
+  border:1px solid var(--line);background:#fff;color:var(--blue-main);
+  width:24px;height:24px;border-radius:7px;cursor:pointer;font-size:15px;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+}
+.memo-edit:active{background:var(--blue-bg);}
 
 /* ---------- TIME TABLE ---------- */
 .tt{margin-top:2px;}
@@ -487,6 +499,7 @@ body{
    세로 모드 전용 추가 버튼 (FAB) + 길게 누르기 표시 — 기본값
    ============================================================ */
 .fab-bar{ display:none; }
+.cal-memo{ display:none; }   /* 세로(폰) 모드에서만 표시 */
 .fab-bar button{
   flex:1;
   font-family:var(--font-ko);
@@ -502,6 +515,21 @@ body{
 .del-hint{
   font-size:10.5px;color:#B6C5D0;margin-top:6px;text-align:center;letter-spacing:.02em;
 }
+
+/* 일정/할일 분리 — 기본(가로)은 좌우 2단 */
+.task-tabs{display:none;}
+.task-cols{display:flex;gap:16px;}
+.task-col{flex:1 1 0;min-width:0;display:flex;flex-direction:column;}
+.task-col-label{
+  font-family:var(--font-label);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text-sub);margin:0 0 4px;
+}
+.task-tab{
+  flex:1;font-family:var(--font-ko);font-size:13px;
+  padding:7px 0;border:1px solid var(--line);background:#fff;color:var(--text-sub);
+  border-radius:9px;cursor:pointer;
+}
+.task-tab.active{background:var(--blue-main);color:#fff;border-color:var(--blue-main);}
 
 /* ============================================================
    STACKED  (태블릿 세로 등 860px 이하) — 위아래 배치 + FAB
@@ -544,21 +572,47 @@ body{
   .app{height:100vh;}
 
   /* 캘린더(날짜 선택)는 더 컴팩트하게 — TASK 공간 확보 */
-  .sidebar{flex:0 0 auto;padding:8px 14px 6px;}
-  .brand{margin-bottom:6px;}
+  .sidebar{
+    flex:0 0 auto;padding:8px 14px 6px;
+    display:flex;flex-wrap:wrap;align-items:stretch;column-gap:10px;row-gap:0;
+  }
+  .brand{flex:0 0 100%;margin-bottom:6px;}
   .brand .mark{font-size:10px;letter-spacing:.24em;}
   .brand h1{font-size:14px;margin-top:2px;}
   .brand p{display:none;}
   .gcal-box{margin-top:7px;}
   .gcal-btn{padding:7px 10px;font-size:12px;border-radius:9px;}
+  .gcal-refresh{width:34px;font-size:15px;border-radius:9px;}
   .gcal-status{font-size:10px;margin-top:3px;min-height:0;}
-  .calendar{max-width:none;padding:7px 9px 5px;border-radius:11px;margin-top:7px;}
+
+  /* 상단을 좌(캘린더) · 우(메모) 2단으로 */
+  .calendar{
+    flex:1 1 0;min-width:0;
+    max-width:none;padding:7px 8px 5px;border-radius:11px;margin-top:0;
+  }
+  .cal-memo{
+    display:flex;flex-direction:column;
+    flex:1 1 0;min-width:0;
+    background:#fff;border:1px solid var(--line);border-radius:11px;
+    padding:7px 9px;
+  }
+  .cm-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+  .cm-label{
+    font-family:var(--font-label);font-size:10px;letter-spacing:.16em;color:var(--text);
+  }
+  .cal-memo .memo-edit{width:22px;height:22px;font-size:14px;}
+  .cal-memo .memo-view{
+    flex:1;min-height:0;margin-top:0;
+    background:repeating-linear-gradient(transparent,transparent 23px,var(--line) 23px,var(--line) 24px);
+    line-height:24px;font-size:13px;
+    overflow-y:auto;
+  }
   .cal-head{margin-bottom:5px;}
-  .cal-title{font-size:12px;}
-  .cal-nav{width:24px;height:24px;font-size:13px;}
-  .cal-grid.weekdays span{padding:1px 0;font-size:10px;}
+  .cal-title{font-size:11px;}
+  .cal-nav{width:20px;height:20px;font-size:12px;}
+  .cal-grid.weekdays span{padding:1px 0;font-size:9px;}
   .cal-grid{gap:1px;}
-  .day{aspect-ratio:auto;height:24px;font-size:11px;border-radius:6px;}
+  .day{aspect-ratio:auto;height:22px;font-size:10px;border-radius:5px;}
   .day .dot{bottom:2px;width:3px;height:3px;}
   .legend{display:none;}                        /* 공간 절약 */
 
@@ -608,6 +662,11 @@ body{
 
   /* TASK = 메인 영역, 할일이 많으면 이 목록 안에서만 세로 스크롤 */
   .field.task > h3{border-bottom-width:1.5px;flex:0 0 auto;}
+  .task-tabs{display:flex;gap:6px;margin:4px 0 6px;flex:0 0 auto;}
+  .task-cols{flex:1 1 auto;min-height:0;display:block;gap:0;}
+  .task-col{display:none;height:100%;}
+  .task-col.active{display:flex;}
+  .task-col-label{display:none;}              /* 탭이 대신함 */
   .task-line{-webkit-touch-callout:none;user-select:none;}
   .task-line .del-x{display:flex;}            /* 세로 모드: 삭제 버튼 노출 */
   .task-body{
@@ -653,13 +712,14 @@ body{
   display:block;font-size:11px;color:var(--text-sub);
   letter-spacing:.04em;margin-bottom:4px;
 }
-.m-field input,.m-field select{
+.m-field input,.m-field select,.m-field textarea{
   width:100%;
   border:1px solid var(--line);border-radius:8px;
   padding:8px 10px;font-family:var(--font-ko);font-size:13px;
   color:var(--text);background:#fff;outline:none;
 }
-.m-field input:focus,.m-field select:focus{border-color:var(--blue-main);}
+.m-field textarea{resize:vertical;line-height:1.5;}
+.m-field input:focus,.m-field select:focus,.m-field textarea:focus{border-color:var(--blue-main);}
 .m-row{display:flex;gap:10px;}
 .m-row .m-field{flex:1;}
 .m-actions{
@@ -679,8 +739,9 @@ body{
    구글 연동 버튼 / 동기화 상태
    ============================================================ */
 .gcal-box{margin-top:12px;}
+.gcal-row{display:flex;gap:6px;align-items:stretch;}
 .gcal-btn{
-  width:100%;
+  flex:1;
   font-family:var(--font-ko);font-size:13px;
   padding:9px 12px;border-radius:10px;cursor:pointer;
   border:1px solid var(--blue-main);background:#fff;color:var(--blue-deep);
@@ -689,6 +750,15 @@ body{
 }
 .gcal-btn:hover{background:var(--blue-bg);}
 .gcal-btn.connected{background:var(--blue-main);color:#fff;border-color:var(--blue-main);}
+.gcal-refresh{
+  flex:0 0 auto;width:40px;
+  border:1px solid var(--line);background:#fff;color:var(--blue-main);
+  border-radius:10px;cursor:pointer;font-size:17px;line-height:1;
+  display:flex;align-items:center;justify-content:center;transition:.15s;
+}
+.gcal-refresh:hover{background:var(--blue-bg);border-color:var(--blue-main);}
+.gcal-refresh.spin{animation:gcalspin .8s linear infinite;}
+@keyframes gcalspin{to{transform:rotate(360deg);}}
 .gcal-status{
   margin-top:6px;font-size:11px;color:var(--text-sub);text-align:center;min-height:14px;
 }
@@ -705,7 +775,10 @@ body{
       <h1>개인 일정 비서</h1>
       <p>날짜를 선택해 그날의 플래너를 확인하세요</p>
       <div class="gcal-box">
-        <button class="gcal-btn" id="gcalBtn">구글 캘린더 연결</button>
+        <div class="gcal-row">
+          <button class="gcal-btn" id="gcalBtn">구글 캘린더 연결</button>
+          <button class="gcal-refresh" id="gcalRefresh" title="동기화 새로고침" aria-label="동기화 새로고침">↻</button>
+        </div>
         <div class="gcal-status" id="gcalStatus"></div>
       </div>
     </div>
@@ -727,6 +800,14 @@ body{
         <div class="row"><span class="chip sel"></span>선택한 날짜</div>
         <div class="row"><span class="chip evt"></span>일정 있는 날</div>
       </div>
+    </div>
+
+    <div class="cal-memo">
+      <div class="cm-head">
+        <span class="cm-label">MEMO</span>
+        <button class="memo-edit" id="memoBtnMobile" aria-label="메모 입력">＋</button>
+      </div>
+      <div class="memo-view" id="fMemoMobile" data-empty="메모 추가"></div>
     </div>
   </aside>
 
@@ -750,12 +831,25 @@ body{
 
           <section class="field task">
             <h3>Task<button class="add-btn" id="openAdd">+ 일정 추가</button></h3>
-            <div class="task-body" id="fTask"></div>
+            <div class="task-tabs">
+              <button class="task-tab active" data-tab="event">일정</button>
+              <button class="task-tab" data-tab="todo">할일</button>
+            </div>
+            <div class="task-cols">
+              <div class="task-col active" id="colEvent">
+                <div class="task-col-label">일정</div>
+                <div class="task-body" id="fTaskEvent"></div>
+              </div>
+              <div class="task-col" id="colTodo">
+                <div class="task-col-label">할일</div>
+                <div class="task-body" id="fTaskTodo"></div>
+              </div>
+            </div>
           </section>
 
           <section class="field memo">
-            <h3>Memo</h3>
-            <textarea class="memo-area" id="fMemo" placeholder="이 날의 메모…"></textarea>
+            <h3>Memo<button class="add-btn" id="memoBtn">＋ 메모 입력</button></h3>
+            <div class="memo-view" id="fMemo" data-empty="메모 추가"></div>
           </section>
         </div>
 
@@ -806,6 +900,23 @@ body{
     <div class="m-actions">
       <button class="btn-cancel" id="cancelTodo">취소</button>
       <button class="btn-save" id="saveTodo">추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 메모 입력 모달 ===================== -->
+<div class="modal-back" id="memoBack">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="m-head" id="memoHead">메모</div>
+    <div class="m-body">
+      <div class="m-field">
+        <label>이 날의 메모</label>
+        <textarea id="memoInput" rows="6" placeholder="메모를 입력하세요"></textarea>
+      </div>
+    </div>
+    <div class="m-actions">
+      <button class="btn-cancel" id="cancelMemo">취소</button>
+      <button class="btn-save" id="saveMemo">저장</button>
     </div>
   </div>
 </div>
@@ -1016,6 +1127,35 @@ const GOOGLE_CLIENT_ID = '963829025495-2usp15tnpri905boo5rbjmo69eikv90f.apps.goo
 const GOOGLE_SCOPE = 'https://www.googleapis.com/auth/calendar.events';  // 읽기·쓰기
 let tokenClient = null;
 let accessToken = null;
+let tokenExpiry = 0;
+
+/* 토큰 저장/복원 (앱 껐다 켜도 유지) */
+const TOKEN_KEY = 'planner:gcalToken';
+const CONN_KEY  = 'planner:gcalConnected';
+function saveToken(token, expiresInSec){
+  tokenExpiry = Date.now() + ((expiresInSec || 3600) * 1000);
+  try{
+    localStorage.setItem(TOKEN_KEY, JSON.stringify({ token, exp: tokenExpiry }));
+    localStorage.setItem(CONN_KEY, '1');
+  }catch(e){}
+}
+function loadToken(){
+  try{
+    const raw = localStorage.getItem(TOKEN_KEY);
+    if(!raw) return false;
+    const o = JSON.parse(raw);
+    if(o && o.token && o.exp && o.exp > Date.now() + 30000){  // 30초 여유
+      accessToken = o.token; tokenExpiry = o.exp; return true;
+    }
+  }catch(e){}
+  return false;
+}
+function clearToken(){
+  try{ localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(CONN_KEY); }catch(e){}
+}
+function wasConnected(){
+  try{ return localStorage.getItem(CONN_KEY) === '1'; }catch(e){ return false; }
+}
 
 /* 유형 자동 분류: 대괄호 태그 우선 → 키워드 추론 → 기타 */
 function classifyType(title, desc){
@@ -1058,7 +1198,7 @@ async function fetchGoogleCalendarEvents(timeMin, timeMax){
   const url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events?' + params.toString();
   const res = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
   if(!res.ok){
-    if(res.status === 401){ accessToken = null; updateAuthUI(); }
+    if(res.status === 401){ accessToken = null; tokenExpiry = 0; updateAuthUI(); }
     throw new Error('Calendar fetch failed: ' + res.status);
   }
   const data = await res.json();
@@ -1151,8 +1291,10 @@ function renderPlannerPage(date){
   /* TASK — 그날 일정 목록을 줄 위에 표시 */
   renderTask(events);
 
-  /* MEMO — 저장소에서 불러오기 */
-  document.getElementById('fMemo').value = Storage.getDayNote(date);
+  /* MEMO — 저장소에서 불러와 표시 */
+  const note = Storage.getDayNote(date);
+  document.getElementById('fMemo').textContent = note;
+  document.getElementById('fMemoMobile').textContent = note;
 
   /* TIME TABLE */
   renderTimeTable(events);
@@ -1177,74 +1319,96 @@ function renderDday(date){
   el.innerHTML = html;
 }
 
-function renderTask(events){
-  const wrap = document.getElementById('fTask');
-  wrap.innerHTML = '';
-  // 미완료 먼저 → 시간순 → 우선순위
-  const sorted = events.slice().sort((a,b)=>{
+/* 한 항목(line) DOM 생성 — 일정/할일 공용 */
+function buildTaskLine(e, showBadge){
+  const line = document.createElement('div');
+  line.className = 'task-line' + (e.done ? ' done' : '');
+  const timeTxt = (e.startTime && e.endTime) ? `${e.startTime}~${e.endTime}` : '';
+
+  const chk = document.createElement('span');
+  chk.className = 'chk' + (e.done ? ' checked' : '');
+  chk.title = '완료 체크 / 해제';
+  ['mousedown','touchstart'].forEach(ev => chk.addEventListener(ev, x=>x.stopPropagation()));
+  chk.addEventListener('click', (x)=>{
+    x.stopPropagation();
+    EventsStore.toggleDone(e.id);
+    renderPlannerPage(AppState.selectedDate);
+  });
+  line.appendChild(chk);
+
+  if(showBadge){
+    const badge = document.createElement('span');
+    badge.className = 'badge ' + e.type;
+    badge.textContent = (e.type==='custom' && e.customType) ? e.customType : TYPE_LABEL[e.type];
+    line.appendChild(badge);
+  }
+
+  const title = document.createElement('span');
+  title.className = 't-title';
+  title.textContent = e.title;
+  line.appendChild(title);
+
+  if(timeTxt){
+    const tm = document.createElement('span');
+    tm.className = 't-time';
+    tm.textContent = timeTxt;
+    line.appendChild(tm);
+  }
+
+  const doDelete = ()=>{
+    if(confirm(`"${e.title}" 항목을 삭제할까요?`)){
+      EventsStore.removeEvent(e.id);
+      renderCalendar();
+      renderPlannerPage(AppState.selectedDate);
+    }
+  };
+  const del = document.createElement('span');
+  del.className = 'del-x'; del.textContent = '×'; del.title = '삭제';
+  ['mousedown','touchstart'].forEach(ev => del.addEventListener(ev, x=>x.stopPropagation()));
+  del.addEventListener('click', (x)=>{ x.stopPropagation(); doDelete(); });
+  line.appendChild(del);
+
+  attachLongPress(line, doDelete);
+  return line;
+}
+
+function sortItems(arr){
+  return arr.slice().sort((a,b)=>{
     if(!!a.done !== !!b.done) return a.done ? 1 : -1;
     const ta=a.startTime||'99:99', tb=b.startTime||'99:99';
     return ta===tb ? TYPE_PRIORITY[a.type]-TYPE_PRIORITY[b.type] : ta.localeCompare(tb);
   });
+}
+function fillEmptyLines(wrap, used, min){
+  for(let i=used; i<min; i++){
+    const empty = document.createElement('div');
+    empty.className = 'task-line';
+    wrap.appendChild(empty);
+  }
+}
 
-  sorted.forEach(e => {
-    const line = document.createElement('div');
-    line.className = 'task-line' + (e.done ? ' done' : '');
-    const timeTxt = (e.startTime && e.endTime) ? `${e.startTime}~${e.endTime}` : '';
+function renderTask(events){
+  const evWrap = document.getElementById('fTaskEvent');
+  const tdWrap = document.getElementById('fTaskTodo');
+  evWrap.innerHTML = '';
+  tdWrap.innerHTML = '';
 
-    const chk = document.createElement('span');
-    chk.className = 'chk' + (e.done ? ' checked' : '');
-    chk.title = '완료 체크 / 해제';
-    // 체크박스는 길게 누르기(삭제)와 분리
-    ['mousedown','touchstart'].forEach(ev => chk.addEventListener(ev, x=>x.stopPropagation()));
-    chk.addEventListener('click', (x)=>{          // 체크 ↔ 해제 토글 (오클릭 복구 가능)
-      x.stopPropagation();
-      EventsStore.toggleDone(e.id);
-      renderPlannerPage(AppState.selectedDate);
-    });
+  const eventItems = sortItems(events.filter(e => e.type !== 'todo'));  // 일정(시험/과제/기타/구글)
+  const todoItems  = sortItems(events.filter(e => e.type === 'todo'));  // 할일
 
-    const badge = document.createElement('span');
-    badge.className = 'badge ' + e.type;
-    badge.textContent = (e.type==='custom' && e.customType) ? e.customType : TYPE_LABEL[e.type];
+  // 일정 구역 (뱃지 표시)
+  eventItems.forEach(e => evWrap.appendChild(buildTaskLine(e, true)));
+  fillEmptyLines(evWrap, eventItems.length, 6);
+  if(eventItems.length){
+    const hint = document.createElement('div');
+    hint.className = 'del-hint';
+    hint.textContent = '※ 항목을 길게 누르면 삭제됩니다';
+    evWrap.appendChild(hint);
+  }
 
-    const title = document.createElement('span');
-    title.className = 't-title';
-    title.textContent = e.title;
+  // 할일 구역 (뱃지 없음) + 빠른 입력
+  todoItems.forEach(e => tdWrap.appendChild(buildTaskLine(e, false)));
 
-    line.appendChild(chk);
-    line.appendChild(badge);
-    line.appendChild(title);
-    if(timeTxt){
-      const tm = document.createElement('span');
-      tm.className = 't-time';
-      tm.textContent = timeTxt;
-      line.appendChild(tm);
-    }
-
-    // 삭제 동작 (확인 후 삭제)
-    const doDelete = ()=>{
-      if(confirm(`"${e.title}" 항목을 삭제할까요?`)){
-        EventsStore.removeEvent(e.id);
-        renderCalendar();
-        renderPlannerPage(AppState.selectedDate);
-      }
-    };
-
-    // 세로 모드용 삭제 버튼 (× 탭)
-    const del = document.createElement('span');
-    del.className = 'del-x';
-    del.textContent = '×';
-    del.title = '삭제';
-    ['mousedown','touchstart'].forEach(ev => del.addEventListener(ev, x=>x.stopPropagation()));
-    del.addEventListener('click', (x)=>{ x.stopPropagation(); doDelete(); });
-    line.appendChild(del);
-
-    // 데스크톱: 길게 눌러도 삭제
-    attachLongPress(line, doDelete);
-    wrap.appendChild(line);
-  });
-
-  // 빠른 할일 입력 줄 — 직접 입력하면 항목으로 추가
   const inputLine = document.createElement('div');
   inputLine.className = 'task-line input-line';
   const mark = document.createElement('span');
@@ -1256,32 +1420,26 @@ function renderTask(events){
   input.addEventListener('keydown', (ev)=>{
     if(ev.key === 'Enter' && input.value.trim()){
       EventsStore.addTodo(AppState.selectedDate, input.value.trim());
-      renderCalendar();                            // 새 점 표시 갱신
+      renderCalendar();
       renderPlannerPage(AppState.selectedDate);
-      // 재렌더 후 입력칸에 다시 포커스
-      requestAnimationFrame(()=>{ const qi=document.querySelector('.quick-input'); if(qi) qi.focus(); });
+      requestAnimationFrame(()=>{ const qi=document.querySelector('#fTaskTodo .quick-input'); if(qi) qi.focus(); });
     }
   });
   inputLine.appendChild(mark);
   inputLine.appendChild(input);
-  wrap.appendChild(inputLine);
-
-  // 양식 느낌 유지를 위한 빈 줄 채우기
-  const MIN_LINES = 9;
-  const filled = sorted.length + 1;
-  for(let i=filled; i<MIN_LINES; i++){
-    const empty = document.createElement('div');
-    empty.className = 'task-line';
-    wrap.appendChild(empty);
-  }
-
-  if(sorted.length){
-    const hint = document.createElement('div');
-    hint.className = 'del-hint';
-    hint.textContent = '※ 항목을 길게 누르면 삭제됩니다';
-    wrap.appendChild(hint);
-  }
+  tdWrap.appendChild(inputLine);
+  fillEmptyLines(tdWrap, todoItems.length + 1, 6);
 }
+
+/* 세로 모드 탭 전환 (일정 | 할일) */
+function setTaskTab(tab){
+  document.querySelectorAll('.task-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.getElementById('colEvent').classList.toggle('active', tab === 'event');
+  document.getElementById('colTodo').classList.toggle('active', tab === 'todo');
+}
+document.querySelectorAll('.task-tab').forEach(btn => {
+  btn.addEventListener('click', ()=> setTaskTab(btn.dataset.tab));
+});
 
 function renderTimeTable(events){
   const wrap = document.getElementById('fTime');
@@ -1351,9 +1509,29 @@ document.getElementById('nextMonth').addEventListener('click', ()=>{
   renderCalendar();
   if(accessToken) syncFromGoogle();
 });
-document.getElementById('fMemo').addEventListener('input', (ev)=>{
-  Storage.setDayNote(AppState.selectedDate, ev.target.value);   // 날짜별 저장
-});
+/* ---------- 메모 입력 모달 ---------- */
+const memoBack = document.getElementById('memoBack');
+function openMemoModal(){
+  document.getElementById('memoInput').value = Storage.getDayNote(AppState.selectedDate);
+  document.getElementById('memoHead').textContent = '메모 · ' + AppState.selectedDate;
+  memoBack.classList.add('open');
+  setTimeout(()=>document.getElementById('memoInput').focus(), 50);
+}
+function closeMemoModal(){ memoBack.classList.remove('open'); }
+function saveMemo(){
+  const text = document.getElementById('memoInput').value;
+  Storage.setDayNote(AppState.selectedDate, text);
+  document.getElementById('fMemo').textContent = text;
+  document.getElementById('fMemoMobile').textContent = text;
+  closeMemoModal();
+}
+document.getElementById('memoBtn').addEventListener('click', openMemoModal);
+document.getElementById('memoBtnMobile').addEventListener('click', openMemoModal);
+document.getElementById('fMemo').addEventListener('click', openMemoModal);
+document.getElementById('fMemoMobile').addEventListener('click', openMemoModal);
+document.getElementById('cancelMemo').addEventListener('click', closeMemoModal);
+document.getElementById('saveMemo').addEventListener('click', saveMemo);
+memoBack.addEventListener('click', (e)=>{ if(e.target === memoBack) closeMemoModal(); });
 
 /* ---------- 일정 추가 모달 ---------- */
 const modalBack = document.getElementById('modalBack');
@@ -1461,14 +1639,25 @@ function initGoogleAuth(){
     client_id: GOOGLE_CLIENT_ID,
     scope: GOOGLE_SCOPE,
     callback: (resp)=>{
-      if(resp && resp.error){ setSyncStatus('로그인 취소/오류', true); return; }
+      if(resp && resp.error){
+        // 조용한 재연결 실패 등
+        setSyncStatus('다시 연결이 필요해요', true);
+        return;
+      }
       accessToken = resp.access_token;
+      saveToken(resp.access_token, resp.expires_in);
       updateAuthUI();
       syncFromGoogle();
     }
   });
   updateAuthUI();
+  // 이전에 연결했었는데 저장된 토큰이 만료됐으면 → 조용히 재연결 시도(터치 없이)
+  if(!isTokenValid() && wasConnected()){
+    setSyncStatus('자동 재연결 중…');
+    try{ tokenClient.requestAccessToken({ prompt: '' }); }catch(e){}
+  }
 }
+function isTokenValid(){ return !!accessToken && tokenExpiry > Date.now() + 30000; }
 function signIn(){
   if(!tokenClient){ setSyncStatus('잠시 후 다시 시도'); initGoogleAuth(); return; }
   tokenClient.requestAccessToken({ prompt: accessToken ? '' : 'consent' });
@@ -1477,7 +1666,8 @@ function signOut(){
   if(accessToken && window.google && google.accounts && google.accounts.oauth2){
     google.accounts.oauth2.revoke(accessToken, ()=>{});
   }
-  accessToken = null;
+  accessToken = null; tokenExpiry = 0;
+  clearToken();
   EventsStore.setGoogleEvents([]);
   updateAuthUI();
   setSyncStatus('');
@@ -1485,11 +1675,18 @@ function signOut(){
   renderPlannerPage(AppState.selectedDate);
 }
 async function syncFromGoogle(){
-  if(!accessToken) return;
+  // 토큰 없거나 만료 → 조용히 재연결 시도
+  if(!isTokenValid()){
+    if(tokenClient && wasConnected()){ setSyncStatus('자동 재연결 중…'); tokenClient.requestAccessToken({ prompt: '' }); }
+    else { setSyncStatus('구글 캘린더를 연결하세요'); }
+    return;
+  }
   const {year, month} = AppState.view;
   const min = new Date(year, month-1, 1).toISOString();   // 한 달 전부터
   const max = new Date(year, month+2, 1).toISOString();   // 두 달 후까지
+  const refreshBtn = document.getElementById('gcalRefresh');
   try{
+    refreshBtn.classList.add('spin');
     setSyncStatus('동기화 중…');
     const events = await fetchGoogleCalendarEvents(min, max);
     EventsStore.setGoogleEvents(events);
@@ -1498,11 +1695,18 @@ async function syncFromGoogle(){
     renderPlannerPage(AppState.selectedDate);
   }catch(err){
     console.error(err);
-    setSyncStatus('동기화 실패 — 버튼을 다시 눌러보세요', true);
+    setSyncStatus('동기화 실패 — 새로고침을 눌러보세요', true);
+  }finally{
+    refreshBtn.classList.remove('spin');
   }
 }
 document.getElementById('gcalBtn').addEventListener('click', ()=>{
   if(accessToken) signOut(); else signIn();
+});
+document.getElementById('gcalRefresh').addEventListener('click', ()=>{
+  if(isTokenValid()) syncFromGoogle();
+  else if(wasConnected() && tokenClient) tokenClient.requestAccessToken({ prompt: '' });
+  else signIn();
 });
 
 /* 초기화 */
@@ -1512,7 +1716,13 @@ document.getElementById('gcalBtn').addEventListener('click', ()=>{
   AppState.view = { year: t.getFullYear(), month: t.getMonth() };
   renderCalendar();
   renderPlannerPage(AppState.selectedDate);
-  initGoogleAuth();                    // 구글 로그인 준비
+
+  loadToken();                         // 저장된 토큰 복원
+  if(isTokenValid()){                  // 유효하면 바로 동기화 (터치/팝업 없음)
+    updateAuthUI();
+    syncFromGoogle();
+  }
+  initGoogleAuth();                    // 구글 로그인 준비 (+ 필요시 조용한 재연결)
 })();
 </script>
 </body>
