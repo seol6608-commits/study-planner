@@ -1096,6 +1096,7 @@ const Storage = LocalStorageAdapter;
 const EventsStore = {
   events: [],
   googleEvents: [],
+  googleTasks: [],
   doneMap: {},
   load(){
     const deleted = new Set(Storage.getDeleted());
@@ -1108,7 +1109,10 @@ const EventsStore = {
     this.googleEvents = arr || [];
     this.googleEvents.forEach(e => { e.done = !!this.doneMap[e.id]; });
   },
-  _all(){ return this.events.concat(this.googleEvents); },
+  setGoogleTasks(arr){
+    this.googleTasks = arr || [];   // 완료 상태는 구글 Tasks가 기준(그대로 사용)
+  },
+  _all(){ return this.events.concat(this.googleEvents).concat(this.googleTasks); },
   persistUser(){
     // 샘플을 제외한 사용자 생성분만 저장
     Storage.setUserEvents(this.events.filter(e => String(e.id).startsWith("u-")));
@@ -1175,7 +1179,7 @@ function parseDate(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y
  *  6. Google Calendar 연동
  * ========================================================================== */
 const GOOGLE_CLIENT_ID = '963829025495-2usp15tnpri905boo5rbjmo69eikv90f.apps.googleusercontent.com';
-const GOOGLE_SCOPE = 'https://www.googleapis.com/auth/calendar.events';  // 읽기·쓰기
+const GOOGLE_SCOPE = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/tasks';  // 캘린더 + 할일
 let tokenClient = null;
 let accessToken = null;
 let tokenExpiry = 0;
@@ -1186,7 +1190,7 @@ const CONN_KEY  = 'planner:gcalConnected';
 function saveToken(token, expiresInSec){
   tokenExpiry = Date.now() + ((expiresInSec || 3600) * 1000);
   try{
-    localStorage.setItem(TOKEN_KEY, JSON.stringify({ token, exp: tokenExpiry }));
+    localStorage.setItem(TOKEN_KEY, JSON.stringify({ token, exp: tokenExpiry, scope: GOOGLE_SCOPE }));
     localStorage.setItem(CONN_KEY, '1');
   }catch(e){}
 }
@@ -1195,6 +1199,7 @@ function loadToken(){
     const raw = localStorage.getItem(TOKEN_KEY);
     if(!raw) return false;
     const o = JSON.parse(raw);
+    if(o && o.scope !== GOOGLE_SCOPE) return false;   // 권한 범위 바뀌면 재인증 필요
     if(o && o.token && o.exp && o.exp > Date.now() + 30000){  // 30초 여유
       accessToken = o.token; tokenExpiry = o.exp; return true;
     }
@@ -1321,6 +1326,91 @@ async function gcalPatchEvent(googleId, fields){
     throw new Error('Calendar patch failed: ' + res.status);
   }
   return res.json();
+}
+
+/* ===== 구글 Tasks (할일) ===== */
+const GTASK_BASE = 'https://tasks.googleapis.com/tasks/v1/lists/@default/tasks';
+function normalizeGoogleTask(t){
+  return {
+    id: t.id,
+    title: t.title || '(제목 없음)',
+    type: 'todo',
+    date: t.due ? t.due.slice(0,10) : undefined,   // 마감일(없으면 날짜 미지정)
+    done: t.status === 'completed',
+    memo: t.notes || '',
+    source: 'google-tasks'
+  };
+}
+async function gtasksList(){
+  if(!accessToken) return [];
+  const url = GTASK_BASE + '?showCompleted=true&showHidden=true&maxResults=100';
+  const res = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+  if(!res.ok){
+    if(res.status === 401){ accessToken = null; tokenExpiry = 0; updateAuthUI(); }
+    throw new Error('Tasks list failed: ' + res.status);
+  }
+  const data = await res.json();
+  return (data.items || []).map(normalizeGoogleTask).filter(t => t.date);  // 날짜 있는 할일만 표시
+}
+async function gtaskInsert(title, date){
+  const body = { title };
+  if(date) body.due = date + 'T00:00:00.000Z';
+  const res = await fetch(GTASK_BASE, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok){
+    if(res.status === 401){ accessToken = null; tokenExpiry = 0; updateAuthUI(); }
+    throw new Error('Task insert failed: ' + res.status);
+  }
+  return res.json();
+}
+async function gtaskSetDone(id, done){
+  const res = await fetch(GTASK_BASE + '/' + encodeURIComponent(id), {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: done ? 'completed' : 'needsAction' })
+  });
+  if(!res.ok){
+    if(res.status === 401){ accessToken = null; tokenExpiry = 0; updateAuthUI(); }
+    throw new Error('Task patch failed: ' + res.status);
+  }
+  return res.json();
+}
+async function gtaskDelete(id){
+  const res = await fetch(GTASK_BASE + '/' + encodeURIComponent(id), {
+    method: 'DELETE',
+    headers: { Authorization: 'Bearer ' + accessToken }
+  });
+  if(!res.ok && res.status !== 410){
+    if(res.status === 401){ accessToken = null; tokenExpiry = 0; updateAuthUI(); }
+    throw new Error('Task delete failed: ' + res.status);
+  }
+}
+/* 할일만 다시 불러와 화면 갱신 */
+async function syncTasks(){
+  if(!isTokenValid()) return;
+  try{
+    const tasks = await gtasksList();
+    EventsStore.setGoogleTasks(tasks);
+    renderCalendar();
+    renderPlannerPage(AppState.selectedDate);
+  }catch(err){ console.error(err); }
+}
+/* 할일 추가 — 연결 시 구글 Tasks, 아니면 로컬 */
+function addTodoSmart(date, title){
+  if(isTokenValid()){
+    setSyncStatus('할일 추가 중…');
+    return gtaskInsert(title, date)
+      .then(()=> syncTasks())
+      .catch(err=>{ console.error(err); EventsStore.addTodo(date, title); renderCalendar(); renderPlannerPage(AppState.selectedDate); });
+  } else {
+    EventsStore.addTodo(date, title);
+    renderCalendar();
+    renderPlannerPage(AppState.selectedDate);
+    return Promise.resolve();
+  }
 }
 function getEventsByDate(date){ return EventsStore.getByDate(date); }
 function getUpcomingEvents(fromDate, types){ return EventsStore.getUpcoming(fromDate || AppState.selectedDate, types); }
@@ -1449,8 +1539,16 @@ function buildTaskLine(e, showBadge){
   ['mousedown','touchstart'].forEach(ev => chk.addEventListener(ev, x=>x.stopPropagation()));
   chk.addEventListener('click', (x)=>{
     x.stopPropagation();
-    EventsStore.toggleDone(e.id);
-    renderPlannerPage(AppState.selectedDate);
+    if(e.source === 'google-tasks' && isTokenValid()){
+      // 구글 할일 → Tasks 완료 상태 변경 후 갱신
+      e.done = !e.done;                       // 즉시 화면 반영
+      chk.classList.toggle('checked', e.done);
+      line.classList.toggle('done', e.done);
+      gtaskSetDone(e.id, e.done).then(()=> syncTasks()).catch(err=> console.error(err));
+    } else {
+      EventsStore.toggleDone(e.id);
+      renderPlannerPage(AppState.selectedDate);
+    }
   });
   line.appendChild(chk);
 
@@ -1484,6 +1582,9 @@ function buildTaskLine(e, showBadge){
       gcalDeleteEvent(e.id)
         .then(()=> syncFromGoogle())
         .catch(err=>{ console.error(err); setSyncStatus('구글 삭제 실패 — 다시 시도', true); });
+    } else if(e.source === 'google-tasks' && isTokenValid()){
+      // 구글 할일 → Tasks에서 삭제 후 갱신
+      gtaskDelete(e.id).then(()=> syncTasks()).catch(err=> console.error(err));
     } else {
       // 로컬 항목(할일·로컬 일정) → 로컬 삭제
       EventsStore.removeEvent(e.id);
@@ -1548,10 +1649,8 @@ function renderTask(events){
   input.placeholder = '할일 입력 후 Enter';
   input.addEventListener('keydown', (ev)=>{
     if(ev.key === 'Enter' && input.value.trim()){
-      EventsStore.addTodo(AppState.selectedDate, input.value.trim());
-      renderCalendar();
-      renderPlannerPage(AppState.selectedDate);
-      requestAnimationFrame(()=>{ const qi=document.querySelector('#fTaskTodo .quick-input'); if(qi) qi.focus(); });
+      addTodoSmart(AppState.selectedDate, input.value.trim())
+        .then(()=>{ const qi=document.querySelector('#fTaskTodo .quick-input'); if(qi) qi.focus(); });
     }
   });
   inputLine.appendChild(mark);
@@ -1776,12 +1875,10 @@ document.getElementById('saveTodo').addEventListener('click', ()=>{
   const date  = document.getElementById('tdDate').value;
   if(!title){ document.getElementById('tdTitle').focus(); return; }
   if(!date){ document.getElementById('tdDate').focus(); return; }
-  EventsStore.addTodo(date, title);
   AppState.selectedDate = date;
   AppState.view = { year: parseDate(date).getFullYear(), month: parseDate(date).getMonth() };
   closeTodoModal();
-  renderCalendar();
-  renderPlannerPage(AppState.selectedDate);
+  addTodoSmart(date, title);
 });
 document.getElementById('tdTitle').addEventListener('keydown', (e)=>{
   if(e.key === 'Enter') document.getElementById('saveTodo').click();
@@ -1845,6 +1942,7 @@ function signOut(){
   accessToken = null; tokenExpiry = 0;
   clearToken();
   EventsStore.setGoogleEvents([]);
+  EventsStore.setGoogleTasks([]);
   updateAuthUI();
   setSyncStatus('');
   renderCalendar();
@@ -1866,7 +1964,11 @@ async function syncFromGoogle(){
     setSyncStatus('동기화 중…');
     const events = await fetchGoogleCalendarEvents(min, max);
     EventsStore.setGoogleEvents(events);
-    setSyncStatus(`구글 캘린더 연결됨 · 일정 ${events.length}개`);
+    // 할일(Tasks)도 함께 (권한 없으면 조용히 건너뜀)
+    let taskCount = 0;
+    try{ const tasks = await gtasksList(); EventsStore.setGoogleTasks(tasks); taskCount = tasks.length; }
+    catch(te){ console.log('Tasks 동기화 건너뜀', te); }
+    setSyncStatus(`구글 연결됨 · 일정 ${events.length} · 할일 ${taskCount}`);
     renderCalendar();
     renderPlannerPage(AppState.selectedDate);
   }catch(err){
