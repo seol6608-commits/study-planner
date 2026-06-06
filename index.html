@@ -4,6 +4,12 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Study Planner · 일정 확인</title>
+<meta name="theme-color" content="#5E87A8" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Study Planner" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icon-192.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
@@ -1895,6 +1901,13 @@ document.getElementById('gcalRefresh').addEventListener('click', ()=>{
   }
   initGoogleAuth();                    // 구글 로그인 준비 (+ 필요시 조용한 재연결)
 })();
+
+/* PWA: 서비스워커 등록 (홈화면 설치 + 오프라인) */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('service-worker.js').catch(err=> console.log('SW 등록 실패', err));
+  });
+}
 </script>
 </body>
 </html>
