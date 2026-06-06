@@ -1107,7 +1107,8 @@ const EventsStore = {
   },
   setGoogleEvents(arr){
     this.googleEvents = arr || [];
-    this.googleEvents.forEach(e => { e.done = !!this.doneMap[e.id]; });
+    // 구글 일정: ✓ 표시(normalize의 done)가 기준, 로컬 doneMap은 보조
+    this.googleEvents.forEach(e => { e.done = e.done || !!this.doneMap[e.id]; });
   },
   setGoogleTasks(arr){
     this.googleTasks = arr || [];   // 완료 상태는 구글 Tasks가 기준(그대로 사용)
@@ -1179,7 +1180,7 @@ function parseDate(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y
  *  6. Google Calendar 연동
  * ========================================================================== */
 const GOOGLE_CLIENT_ID = '963829025495-2usp15tnpri905boo5rbjmo69eikv90f.apps.googleusercontent.com';
-const GOOGLE_SCOPE = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/tasks';  // 캘린더 + 할일
+const GOOGLE_SCOPE = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/drive.appdata';  // 캘린더 + 할일 + 메모(앱 전용 숨김폴더)
 let tokenClient = null;
 let accessToken = null;
 let tokenExpiry = 0;
@@ -1239,14 +1240,18 @@ function normalizeGoogleCalendarEvent(raw){
   const start = raw?.start?.dateTime || raw?.start?.date || "";
   const end   = raw?.end?.dateTime   || raw?.end?.date   || "";
   const timed = start.length > 10;
+  const rawSummary = raw.summary || '';
+  const doneMark = /^\s*✓\s*/.test(rawSummary);            // 완료 표시(✓) 인식
+  const clean = rawSummary.replace(/^\s*✓\s*/, '');        // ✓ 제거
   return {
     id: raw.id,
-    title: stripTypeTag(raw.summary) || "(제목 없음)",   // 표시용 제목(태그 제거)
-    type: typeOverrides[raw.id] || classifyType(raw.summary, raw.description),  // 사용자 지정 우선
+    title: stripTypeTag(clean) || "(제목 없음)",            // 표시용 제목(✓·태그 제거)
+    type: typeOverrides[raw.id] || classifyType(clean, raw.description),  // 사용자 지정 우선
     date: (start || "").slice(0,10),
     startTime: timed ? start.slice(11,16) : undefined,
     endTime:   end.length>10 ? end.slice(11,16) : undefined,
     memo: raw.description || "",
+    done: doneMark,                                         // ✓ 기준(두 기기 공유)
     source: "google-calendar"
   };
 }
@@ -1389,8 +1394,7 @@ async function gtaskDelete(id){
   }
 }
 /* 할일만 다시 불러와 화면 갱신 */
-async function syncTasks(){
-  if(!isTokenValid()) return;
+async function syncTasks(){  if(!isTokenValid()) return;
   try{
     const tasks = await gtasksList();
     EventsStore.setGoogleTasks(tasks);
@@ -1411,6 +1415,96 @@ function addTodoSmart(date, title){
     renderPlannerPage(AppState.selectedDate);
     return Promise.resolve();
   }
+}
+
+/* 일정 제목에 완료(✓) 표시 + 유형 태그 유지하여 재구성 */
+function buildSummaryDoneMark(e, done){
+  const tag = (e.type !== 'etc' && TYPE_TAGS[e.type]) ? TYPE_TAGS[e.type] + ' ' : '';
+  return (done ? '✓ ' : '') + tag + stripTypeTag(e.title || '');
+}
+
+/* ===== 메모 ↔ 구글 Drive 앱 전용 숨김폴더(appDataFolder) ===== */
+const DRIVE_FILES  = 'https://www.googleapis.com/drive/v3/files';
+const DRIVE_UPLOAD = 'https://www.googleapis.com/upload/drive/v3/files';
+const NOTES_FILENAME = 'planner-notes.json';
+let notesFileId = null;
+let notesSaveTimer = null;
+
+function collectLocalNotes(){
+  const o = {};
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    if(k && k.indexOf('planner:note:') === 0){
+      const date = k.slice('planner:note:'.length);
+      const v = localStorage.getItem(k);
+      if(v) o[date] = v;
+    }
+  }
+  return o;
+}
+function applyNotes(obj){
+  Object.keys(obj || {}).forEach(date=>{
+    if(obj[date]) localStorage.setItem('planner:note:'+date, obj[date]);
+  });
+}
+async function gdriveFindNotes(){
+  const q = encodeURIComponent("name='" + NOTES_FILENAME + "'");
+  const url = DRIVE_FILES + '?spaces=appDataFolder&q=' + q + '&fields=files(id,name)';
+  const res = await fetch(url, { headers:{ Authorization:'Bearer '+accessToken } });
+  if(!res.ok){
+    if(res.status === 401){ accessToken=null; tokenExpiry=0; updateAuthUI(); }
+    throw new Error('Drive find failed: '+res.status);
+  }
+  const data = await res.json();
+  notesFileId = (data.files && data.files[0]) ? data.files[0].id : null;
+  return notesFileId;
+}
+async function gdriveLoadNotes(){
+  if(!isTokenValid()) return;
+  try{
+    if(!notesFileId) await gdriveFindNotes();
+    if(!notesFileId) return;   // 아직 저장된 메모 파일 없음
+    const res = await fetch(DRIVE_FILES + '/' + notesFileId + '?alt=media', { headers:{ Authorization:'Bearer '+accessToken } });
+    if(!res.ok) throw new Error('Drive load failed: '+res.status);
+    const obj = await res.json();
+    applyNotes(obj);
+    // 현재 보고 있는 날짜 메모 즉시 반영
+    const note = Storage.getDayNote(AppState.selectedDate);
+    document.getElementById('fMemo').textContent = note;
+    document.getElementById('fMemoMobile').textContent = note;
+  }catch(e){ console.log('메모 불러오기 건너뜀', e); }
+}
+async function gdriveSaveNotes(){
+  if(!isTokenValid()) return;
+  const content = JSON.stringify(collectLocalNotes());
+  try{
+    if(notesFileId === null) await gdriveFindNotes();
+    if(notesFileId){
+      await fetch(DRIVE_UPLOAD + '/' + notesFileId + '?uploadType=media', {
+        method:'PATCH',
+        headers:{ Authorization:'Bearer '+accessToken, 'Content-Type':'application/json' },
+        body: content
+      });
+    } else {
+      const boundary = '----planner' + Date.now();
+      const meta = { name: NOTES_FILENAME, parents:['appDataFolder'] };
+      const body =
+        '--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify(meta)+
+        '\r\n--'+boundary+'\r\nContent-Type: application/json\r\n\r\n'+content+
+        '\r\n--'+boundary+'--';
+      const res = await fetch(DRIVE_UPLOAD + '?uploadType=multipart&fields=id', {
+        method:'POST',
+        headers:{ Authorization:'Bearer '+accessToken, 'Content-Type':'multipart/related; boundary='+boundary },
+        body
+      });
+      if(res.ok){ const data = await res.json(); notesFileId = data.id; }
+    }
+  }catch(e){ console.log('메모 저장 건너뜀', e); }
+}
+function scheduleNotesSave(){
+  if(!isTokenValid()) return;
+  clearTimeout(notesSaveTimer);
+  notesSaveTimer = setTimeout(gdriveSaveNotes, 1200);   // 입력 멈춘 뒤 저장
 }
 function getEventsByDate(date){ return EventsStore.getByDate(date); }
 function getUpcomingEvents(fromDate, types){ return EventsStore.getUpcoming(fromDate || AppState.selectedDate, types); }
@@ -1545,6 +1639,14 @@ function buildTaskLine(e, showBadge){
       chk.classList.toggle('checked', e.done);
       line.classList.toggle('done', e.done);
       gtaskSetDone(e.id, e.done).then(()=> syncTasks()).catch(err=> console.error(err));
+    } else if(e.source === 'google-calendar' && isTokenValid()){
+      // 구글 일정 → 제목에 ✓ 표시 토글(두 기기 공유)
+      e.done = !e.done;
+      chk.classList.toggle('checked', e.done);
+      line.classList.toggle('done', e.done);
+      if(e.done) EventsStore.doneMap[e.id] = true; else delete EventsStore.doneMap[e.id];
+      Storage.setDoneMap(EventsStore.doneMap);
+      gcalPatchEvent(e.id, { summary: buildSummaryDoneMark(e, e.done) }).catch(err=> console.error(err));
     } else {
       EventsStore.toggleDone(e.id);
       renderPlannerPage(AppState.selectedDate);
@@ -1752,6 +1854,7 @@ function saveMemo(){
   document.getElementById('fMemo').textContent = text;
   document.getElementById('fMemoMobile').textContent = text;
   closeMemoModal();
+  scheduleNotesSave();                 // 구글 Drive(숨김폴더)에 동기화
 }
 document.getElementById('memoBtn').addEventListener('click', openMemoModal);
 document.getElementById('memoBtnMobile').addEventListener('click', openMemoModal);
@@ -1968,6 +2071,8 @@ async function syncFromGoogle(){
     let taskCount = 0;
     try{ const tasks = await gtasksList(); EventsStore.setGoogleTasks(tasks); taskCount = tasks.length; }
     catch(te){ console.log('Tasks 동기화 건너뜀', te); }
+    // 메모(Drive 숨김폴더)도 함께 불러오기
+    gdriveLoadNotes();
     setSyncStatus(`구글 연결됨 · 일정 ${events.length} · 할일 ${taskCount}`);
     renderCalendar();
     renderPlannerPage(AppState.selectedDate);
