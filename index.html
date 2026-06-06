@@ -543,20 +543,27 @@ body{
   html,body{height:100%;overflow:hidden;}     /* 페이지 스크롤 제거 */
   .app{height:100vh;}
 
-  /* 캘린더(날짜 선택)는 컴팩트하게 */
-  .sidebar{flex:0 0 auto;padding:12px 14px 10px;}
-  .brand{margin-bottom:10px;}
-  .brand h1{font-size:16px;}
+  /* 캘린더(날짜 선택)는 더 컴팩트하게 — TASK 공간 확보 */
+  .sidebar{flex:0 0 auto;padding:8px 14px 6px;}
+  .brand{margin-bottom:6px;}
+  .brand .mark{font-size:10px;letter-spacing:.24em;}
+  .brand h1{font-size:14px;margin-top:2px;}
   .brand p{display:none;}
-  .calendar{max-width:none;padding:10px 10px 8px;border-radius:12px;}
-  .cal-head{margin-bottom:8px;}
-  .cal-title{font-size:13px;}
-  .cal-grid.weekdays span{padding:2px 0;}
-  .day{aspect-ratio:auto;height:30px;font-size:12px;border-radius:7px;}
+  .gcal-box{margin-top:7px;}
+  .gcal-btn{padding:7px 10px;font-size:12px;border-radius:9px;}
+  .gcal-status{font-size:10px;margin-top:3px;min-height:0;}
+  .calendar{max-width:none;padding:7px 9px 5px;border-radius:11px;margin-top:7px;}
+  .cal-head{margin-bottom:5px;}
+  .cal-title{font-size:12px;}
+  .cal-nav{width:24px;height:24px;font-size:13px;}
+  .cal-grid.weekdays span{padding:1px 0;font-size:10px;}
+  .cal-grid{gap:1px;}
+  .day{aspect-ratio:auto;height:24px;font-size:11px;border-radius:6px;}
+  .day .dot{bottom:2px;width:3px;height:3px;}
   .legend{display:none;}                        /* 공간 절약 */
 
   /* 종이를 화면 높이에 맞춰 채우고 내부만 정리 */
-  .stage{flex:1 1 auto;min-height:0;padding:10px 12px 86px;overflow:hidden;}
+  .stage{flex:1 1 auto;min-height:0;padding:8px 12px 82px;overflow:hidden;}
   .paper{
     width:100%;max-width:none;height:100%;
     display:flex;flex-direction:column;
@@ -570,19 +577,21 @@ body{
     display:grid;
     grid-template-columns:1fr 1fr;
     grid-template-rows:auto auto 1fr;
-    column-gap:14px;row-gap:2px;
-    padding:14px 16px 12px;
+    column-gap:14px;row-gap:0;
+    padding:10px 16px 10px;
   }
   .col{display:contents;}                         /* 필드를 그리드로 직접 배치 */
   .field{margin-bottom:0;}
-  .field > h3{font-size:10px;letter-spacing:.14em;margin-bottom:3px;}
-  .field .val{min-height:0;padding-bottom:5px;font-size:12px;}
+  .field > h3{font-size:9.5px;letter-spacing:.12em;margin-bottom:2px;}
+  .field .val{min-height:0;padding-bottom:4px;font-size:12px;}
+  /* CONTENTS·TOTAL 한 줄 유지 */
+  .field.contents .val,.field.total .val{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
   .field.date   {grid-column:1;grid-row:1;}
   .field.dday   {grid-column:2;grid-row:1;}
   .field.contents{grid-column:1;grid-row:2;}
   .field.total  {grid-column:2;grid-row:2;}
-  .field.task   {grid-column:1 / -1;grid-row:3;display:flex;flex-direction:column;min-height:0;margin-top:6px;}
+  .field.task   {grid-column:1 / -1;grid-row:3;display:flex;flex-direction:column;min-height:0;margin-top:3px;}
 
   /* 포커스 외 영역 숨김 */
   .field.memo, .field.timetable{display:none;}
