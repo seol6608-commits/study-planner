@@ -230,7 +230,7 @@ body{
   column-gap:30px;
   padding:30px 30px 26px;
 }
-.col{display:flex;flex-direction:column;}
+.col{display:flex;flex-direction:column;min-width:0;}
 
 /* ---------- 공통 필드 ---------- */
 .field{margin-bottom:22px;}
@@ -265,10 +265,16 @@ body{
   letter-spacing:.04em;
 }
 .field.dday .dday-title{font-size:13px;color:var(--text);}
+.dd-dot{flex:0 0 auto;width:8px;height:8px;border-radius:50%;display:inline-block;align-self:center;}
+.field.dday .dday-list li .dd-dot{margin-right:2px;}
 .field.dday .dday-list{
   list-style:none;margin-top:8px;
   border-top:1px solid var(--line-soft);padding-top:8px;
+  max-height:108px;overflow-y:auto;            /* 길어도 영역 고정 → 페이지 유지 */
+  overscroll-behavior:contain;
 }
+.field.dday .dday-list::-webkit-scrollbar{width:4px;}
+.field.dday .dday-list::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px;}
 .field.dday .dday-list li{
   display:flex;align-items:center;gap:8px;
   font-size:12px;padding:3px 0;color:var(--text-sub);
@@ -417,7 +423,7 @@ body{
 .quick-input{
   flex:1;border:none;outline:none;background:transparent;
   font-family:var(--font-ko);font-size:13px;color:var(--text);
-  height:100%;
+  height:100%;min-width:0;width:100%;
 }
 .quick-input::placeholder{color:#B6C5D0;}
 
@@ -947,21 +953,8 @@ body{
           </section>
 
           <section class="field task">
-            <h3>Task<span class="task-add-group"><button class="add-btn ghost" id="openAddTodoLs">+ 할일</button><button class="add-btn" id="openAdd">+ 일정</button></span></h3>
-            <div class="task-tabs">
-              <button class="task-tab active" data-tab="event">일정</button>
-              <button class="task-tab" data-tab="todo">할일</button>
-            </div>
-            <div class="task-cols">
-              <div class="task-col active" id="colEvent">
-                <div class="task-col-label">일정</div>
-                <div class="task-body" id="fTaskEvent"></div>
-              </div>
-              <div class="task-col" id="colTodo">
-                <div class="task-col-label">할일</div>
-                <div class="task-body" id="fTaskTodo"></div>
-              </div>
-            </div>
+            <h3>Task<button class="add-btn" id="openAddTodoLs">+ 할일</button></h3>
+            <div class="task-body" id="fTaskTodo"></div>
           </section>
 
           <section class="field memo">
@@ -1000,7 +993,6 @@ body{
 <!-- ===================== 세로 모드 전용 추가 버튼 ===================== -->
 <div class="fab-bar" id="fabBar">
   <button class="fab-todo" id="fabTodo">+ 할일 추가</button>
-  <button class="fab-event" id="fabEvent">+ 일정 추가</button>
 </div>
 
 <!-- ===================== 할일 추가 모달 ===================== -->
@@ -1133,6 +1125,7 @@ body{
  * ========================================================================== */
 const TYPE_LABEL = { exam:"시험", assignment:"과제", present:"발표", etc:"기타", custom:"기타", todo:"할일" };
 const TYPE_PRIORITY = { exam:0, assignment:1, present:2, etc:3, custom:4, todo:5 }; // 시험·과제·발표 우선
+const TYPE_COLOR = { exam:'#3F6B8E', assignment:'#5E87A8', present:'#4E86A0', etc:'#8AA6BC', custom:'#5C93A6', todo:'#9DB4C4' };
 
 const SAMPLE_EVENTS = [
   // 기본 일정 없음 — 사용자가 추가한 일정/할일만 표시됩니다.
@@ -1820,14 +1813,17 @@ function renderDday(date){
   if(!upcoming.length){ el.innerHTML = `<div class="val empty-line"></div>`; return; }
 
   const head = upcoming[0];
-  const rest = upcoming.slice(1,4);
+  const rest = upcoming.slice(1);     // 나머지 전부 (영역은 스크롤로 고정)
   let html = `<div class="dday-main">
       <span class="dday-tag">${ddayLabel(calculateDday(head.date, date))}</span>
+      <span class="dd-dot" style="background:${TYPE_COLOR[head.type]||TYPE_COLOR.etc}"></span>
       <span class="dday-title">${displayTitle(head)}</span>
     </div>`;
   if(rest.length){
     html += `<ul class="dday-list">` + rest.map(e =>
-      `<li><span class="dl-tag">${ddayLabel(calculateDday(e.date, date))}</span>${displayTitle(e)}</li>`
+      `<li><span class="dl-tag">${ddayLabel(calculateDday(e.date, date))}</span>`
+      + `<span class="dd-dot" style="background:${TYPE_COLOR[e.type]||TYPE_COLOR.etc}"></span>`
+      + `${displayTitle(e)}</li>`
     ).join('') + `</ul>`;
   }
   el.innerHTML = html;
@@ -1851,6 +1847,7 @@ function buildTaskLine(e, showBadge){
       chk.classList.toggle('checked', e.done);
       line.classList.toggle('done', e.done);
       gtaskSetDone(e.id, e.done).then(()=> syncTasks()).catch(err=> console.error(err));
+      if(typeof renderStats === 'function') renderStats();
     } else if(e.source === 'google-calendar' && isTokenValid()){
       // 구글 일정 → 제목에 ✓ 표시 토글(두 기기 공유)
       e.done = !e.done;
@@ -1940,25 +1937,11 @@ function fillEmptyLines(wrap, used, min){
 }
 
 function renderTask(events){
-  const evWrap = document.getElementById('fTaskEvent');
   const tdWrap = document.getElementById('fTaskTodo');
-  evWrap.innerHTML = '';
   tdWrap.innerHTML = '';
 
-  const eventItems = sortItems(events.filter(e => e.type !== 'todo'));  // 일정(시험/과제/기타/구글)
-  const todoItems  = sortItems(events.filter(e => e.type === 'todo'));  // 할일
+  const todoItems = sortItems(events.filter(e => e.type === 'todo'));  // 할일만
 
-  // 일정 구역 (뱃지 표시)
-  eventItems.forEach(e => evWrap.appendChild(buildTaskLine(e, true)));
-  fillEmptyLines(evWrap, eventItems.length, 6);
-  if(eventItems.length){
-    const hint = document.createElement('div');
-    hint.className = 'del-hint';
-    hint.textContent = '※ 항목을 길게 누르면 삭제됩니다';
-    evWrap.appendChild(hint);
-  }
-
-  // 할일 구역 (뱃지 없음) + 빠른 입력
   todoItems.forEach(e => tdWrap.appendChild(buildTaskLine(e, false)));
 
   const inputLine = document.createElement('div');
@@ -1978,18 +1961,8 @@ function renderTask(events){
   inputLine.appendChild(mark);
   inputLine.appendChild(input);
   tdWrap.appendChild(inputLine);
-  fillEmptyLines(tdWrap, todoItems.length + 1, 6);
+  fillEmptyLines(tdWrap, todoItems.length + 1, 8);
 }
-
-/* 세로 모드 탭 전환 (일정 | 할일) */
-function setTaskTab(tab){
-  document.querySelectorAll('.task-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  document.getElementById('colEvent').classList.toggle('active', tab === 'event');
-  document.getElementById('colTodo').classList.toggle('active', tab === 'todo');
-}
-document.querySelectorAll('.task-tab').forEach(btn => {
-  btn.addEventListener('click', ()=> setTaskTab(btn.dataset.tab));
-});
 
 function renderTimeTable(events){
   const wrap = document.getElementById('fTime');
@@ -2142,7 +2115,8 @@ function openModal(){
 }
 function closeModal(){ modalBack.classList.remove('open'); }
 
-document.getElementById('openAdd').addEventListener('click', openModal);
+const _openAddBtn = document.getElementById('openAdd');
+if(_openAddBtn) _openAddBtn.addEventListener('click', openModal);
 document.getElementById('cancelAdd').addEventListener('click', closeModal);
 modalBack.addEventListener('click', (e)=>{ if(e.target === modalBack) closeModal(); });
 mType.addEventListener('change', ()=>{
@@ -2243,7 +2217,8 @@ document.getElementById('tdTitle').addEventListener('keydown', (e)=>{
 /* ---------- 세로 모드 FAB 버튼 ---------- */
 document.getElementById('fabTodo').addEventListener('click', openTodoModal);
 document.getElementById('openAddTodoLs').addEventListener('click', openTodoModal);
-document.getElementById('fabEvent').addEventListener('click', openModal);
+const _fabEvent = document.getElementById('fabEvent');
+if(_fabEvent) _fabEvent.addEventListener('click', openModal);
 
 /* ---------- 구글 연동 동작 ---------- */
 function setSyncStatus(msg, isErr){
@@ -2444,7 +2419,7 @@ function studyAggregate(range){
   const all = EventsStore.getAll();
   const tagMin = {}; let total = 0;
   all.forEach(e=>{
-    if(e.type==="todo" && e.startTime && e.endTime && e.date >= fromS && e.date <= toS){
+    if(e.type==="todo" && e.done && e.startTime && e.endTime && e.date >= fromS && e.date <= toS){
       const d = toMin(e.endTime) - toMin(e.startTime);
       if(d>0){ const tg = e.tag || "기타"; tagMin[tg]=(tagMin[tg]||0)+d; total+=d; }
     }
