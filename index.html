@@ -622,12 +622,20 @@ body{
 }
 .pa-head .add-btn{pointer-events:auto;}
 .postit{
-  position:absolute; width:168px; min-height:112px;
-  border-radius:4px; padding:7px 9px 9px;
+  position:absolute; width:168px; min-height:124px;
+  border-radius:4px; padding:6px 9px 9px;
   box-shadow:0 7px 18px -9px rgba(38,55,70,.55);
   display:flex; flex-direction:column; gap:5px; z-index:1;
 }
-.postit .pin{height:18px; display:flex; gap:6px; align-items:center; cursor:grab; touch-action:none;}
+.postit .grip{
+  height:20px; margin:-2px -4px 3px; border-radius:4px 4px 0 0;
+  display:flex; align-items:center; justify-content:center;
+  cursor:grab; touch-action:none; user-select:none;
+  color:rgba(0,0,0,.3); font-size:13px; letter-spacing:2px;
+  background:rgba(0,0,0,.06);
+}
+.postit .grip:active{cursor:grabbing;background:rgba(0,0,0,.1);}
+.postit .pin{height:18px; display:flex; gap:6px; align-items:center;}
 .postit .pin .colors{display:flex; gap:6px;}
 .postit .pin .cdot{width:16px;height:16px;border-radius:50%;cursor:pointer;border:1px solid rgba(0,0,0,.12);}
 .postit .pin .cdot:active{transform:scale(.88);}
@@ -2409,6 +2417,9 @@ function renderPostits(){
     card.style.left = (p.x||16)+'px';
     card.style.top  = (p.y||46)+'px';
 
+    // 넓은 이동 핸들 바
+    const grip = document.createElement('div'); grip.className = 'grip'; grip.textContent = '• • •'; grip.title = '드래그하여 이동';
+
     const pin = document.createElement('div'); pin.className = 'pin';
     const colors = document.createElement('div'); colors.className = 'colors';
     POSTIT_COLORS.forEach(c=>{
@@ -2425,9 +2436,9 @@ function renderPostits(){
     const ta = document.createElement('textarea'); ta.value = p.text||''; ta.placeholder = '메모...';
     ta.addEventListener('input', ()=>{ p.text = ta.value; savePostits(); });
 
-    card.appendChild(pin); card.appendChild(ta);
-    pin.addEventListener('mousedown', (e)=> startPDrag(e, card, p, area));
-    pin.addEventListener('touchstart', (e)=> startPDrag(e, card, p, area), {passive:false});
+    card.appendChild(grip); card.appendChild(pin); card.appendChild(ta);
+    grip.addEventListener('mousedown', (e)=> startPDrag(e, card, p, area));
+    grip.addEventListener('touchstart', (e)=> startPDrag(e, card, p, area), {passive:false});
     area.appendChild(card);
   });
   const addBtn = document.getElementById('addPostit');
