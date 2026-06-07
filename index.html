@@ -373,6 +373,14 @@ body{
   transition:.15s;
 }
 .add-btn:hover{background:var(--blue-bg);border-color:var(--blue-main);}
+.task-add-group{display:flex;gap:6px;align-items:center;}
+.add-btn.ghost{color:var(--text-sub);}
+.add-btn.ghost:hover{color:var(--blue-main);}
+.tag-dot{flex:0 0 auto;width:8px;height:8px;border-radius:50%;margin-right:2px;}
+.total-study{margin-top:6px;font-size:13px;color:var(--text);}
+.total-bytag{margin-top:4px;display:flex;flex-wrap:wrap;gap:4px 12px;}
+.ts-tag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-sub);}
+.ts-tag i{width:8px;height:8px;border-radius:2px;display:inline-block;}
 
 /* 체크박스 */
 .chk{
@@ -498,6 +506,7 @@ body{
 .tt-block.exam{background:var(--blue-deep);}
 .tt-block.assignment{background:var(--blue-main);}
 .tt-block.present{background:#4E86A0;}
+.tt-block.todo{background:#9DB4C4;}
 .tt-block.etc{background:#8AA6BC;}
 .tt-block.custom{background:#5C93A6;}
 .tt-block.done{opacity:.4;}
@@ -552,9 +561,104 @@ body{
 .task-tab.active{background:var(--blue-main);color:#fff;border-color:var(--blue-main);}
 
 /* ============================================================
-   STACKED  (태블릿 세로 등 860px 이하) — 위아래 배치 + FAB
+   LANDSCAPE 넓은 화면 (≥981px) — 종이 왼쪽 정렬, 오른쪽 공간 활용
+   가운데=플래너 종이 / 오른쪽 위=포스트잇 / 오른쪽 아래=그림판
    ============================================================ */
-@media (max-width:860px){
+.side-zone{display:none;}        /* 가로(≥981px)에서만 표시 */
+@media (min-width:981px){
+  .stage{
+    align-items:flex-start;
+    justify-content:flex-start;     /* 종이를 왼쪽으로 */
+    gap:24px;
+    padding:30px 28px 60px;
+  }
+  /* 종이: 좌우로 축소 + 왼쪽 정렬 */
+  .paper{
+    flex:0 0 auto;
+    width:540px;
+    max-width:540px;
+  }
+  .sheet{column-gap:24px;padding:28px 26px 22px;}
+  .task-cols{gap:12px;}
+  /* 왼쪽 영역은 사용 안 함 */
+  .side-zone.left{display:none;}
+  /* 오른쪽 영역: 위=포스트잇 / 아래=그림판 */
+  .side-zone.right{
+    display:flex;
+    flex:1 1 0;
+    min-width:0;
+    align-self:stretch;
+    flex-direction:column;
+    gap:20px;
+  }
+  #postitArea{
+    flex:0 0 auto; min-height:240px;
+    position:relative;
+    border:1px solid var(--line);
+    border-radius:12px;
+    background:rgba(255,255,255,.45);
+    overflow:hidden;
+  }
+  #canvasArea{ flex:1 1 auto; min-height:260px;
+    border:1px solid var(--line); border-radius:12px;
+    background:rgba(255,255,255,.5);
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+}
+/* 그림판 (가로 전용 · IndexedDB 인앱 저장, 동기화 X) */
+.cv-head{
+  display:flex; align-items:center; gap:8px; flex:0 0 auto;
+  padding:8px 10px; border-bottom:1px solid var(--line);
+  font-family:var(--font-label); font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--text-sub);
+}
+.cv-head .sp{flex:1;}
+.cv-tool{
+  border:1px solid var(--line); background:#fff; border-radius:8px; cursor:pointer;
+  width:30px; height:28px; display:flex; align-items:center; justify-content:center;
+  font-size:13px; color:var(--text-sub); padding:0;
+}
+.cv-tool.active{background:var(--blue-main); color:#fff; border-color:var(--blue-main);}
+.cv-pen{width:13px;height:13px;border-radius:50%;cursor:pointer;border:1px solid rgba(0,0,0,.12);}
+.cv-pen.active{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--blue-main);}
+.cv-size{width:64px;}
+.cv-stage{flex:1 1 auto; position:relative; background:#fff;}
+.cv-canvas{position:absolute; inset:0; width:100%; height:100%; touch-action:none; cursor:crosshair;}
+.cv-foot{
+  flex:0 0 auto; display:flex; align-items:center; justify-content:center; gap:14px;
+  padding:7px; border-top:1px solid var(--line);
+  font-family:var(--font-label); font-size:11px; letter-spacing:.1em; color:var(--text-sub);
+}
+.cv-nav{border:none;background:none;cursor:pointer;font-size:16px;color:var(--blue-main);padding:0 6px;}
+.cv-nav:disabled{color:var(--line);cursor:default;}
+.cv-foot .pg{min-width:54px;text-align:center;}
+.cv-foot .addpg{border:1px solid var(--line);background:#fff;border-radius:7px;cursor:pointer;font-size:11px;padding:3px 8px;color:var(--blue-main);}
+/* 포스트잇 카드 */
+.pa-head{
+  position:absolute; top:0; left:0; right:0; height:38px;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 12px; z-index:3; pointer-events:none;
+  font-family:var(--font-label); font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--text-sub);
+}
+.pa-head .add-btn{pointer-events:auto;}
+.postit{
+  position:absolute; width:154px; min-height:110px;
+  border-radius:4px; padding:7px 9px 9px;
+  box-shadow:0 7px 18px -9px rgba(38,55,70,.55);
+  display:flex; flex-direction:column; gap:5px; z-index:1;
+}
+.postit .pin{height:15px; display:flex; gap:5px; align-items:center; cursor:grab; touch-action:none;}
+.postit .pin .colors{display:flex; gap:4px;}
+.postit .pin .cdot{width:11px;height:11px;border-radius:50%;cursor:pointer;border:1px solid rgba(0,0,0,.1);}
+.postit .pin .del{margin-left:auto;cursor:pointer;color:rgba(0,0,0,.38);font-size:15px;line-height:1;}
+.postit textarea{
+  flex:1; border:none; background:transparent; resize:none; outline:none;
+  font-family:var(--font-ko); font-size:12.5px; color:#3a382f; line-height:1.45;
+}
+
+/* ============================================================
+   STACKED  (태블릿 세로·분할뷰 등 980px 이하) — 위아래 배치 + FAB
+   ============================================================ */
+@media (max-width:980px){
   .app{flex-direction:column;}
   .sidebar{
     width:100%;flex:none;
@@ -833,6 +937,7 @@ body{
 
   <!-- ===================== 플래너 종이 ===================== -->
   <main class="stage">
+    <div class="side-zone left" id="zoneLeft"></div>
     <div class="paper">
       <div class="bar top"></div>
 
@@ -850,7 +955,7 @@ body{
           </section>
 
           <section class="field task">
-            <h3>Task<button class="add-btn" id="openAdd">+ 일정 추가</button></h3>
+            <h3>Task<span class="task-add-group"><button class="add-btn ghost" id="openAddTodoLs">+ 할일</button><button class="add-btn" id="openAdd">+ 일정</button></span></h3>
             <div class="task-tabs">
               <button class="task-tab active" data-tab="event">일정</button>
               <button class="task-tab" data-tab="todo">할일</button>
@@ -894,6 +999,10 @@ body{
 
       <div class="bar bottom"><span>personal schedule</span></div>
     </div>
+    <div class="side-zone right" id="zoneRight">
+      <div id="postitArea"></div>
+      <div id="canvasArea"></div>
+    </div>
   </main>
 </div>
 
@@ -915,6 +1024,21 @@ body{
       <div class="m-field">
         <label>날짜</label>
         <input type="date" id="tdDate" />
+      </div>
+      <div class="m-row">
+        <div class="m-field">
+          <label>시작</label>
+          <input type="time" id="tdStart" />
+        </div>
+        <div class="m-field">
+          <label>종료</label>
+          <input type="time" id="tdEnd" />
+        </div>
+      </div>
+      <div class="m-field">
+        <label>과목 태그</label>
+        <select id="tdTag"></select>
+        <input type="text" id="tdTagCustom" placeholder="새 태그 입력 후 Enter" style="display:none;margin-top:8px;" />
       </div>
     </div>
     <div class="m-actions">
@@ -1066,6 +1190,20 @@ const LocalStorageAdapter = {
   },
   setTypeMap(map){
     try { localStorage.setItem("planner:typeMap", JSON.stringify(map)); } catch(e){}
+  },
+  getTodoMeta(){
+    try { return JSON.parse(localStorage.getItem("planner:todoMeta") || "{}"); }
+    catch(e){ return {}; }
+  },
+  setTodoMeta(map){
+    try { localStorage.setItem("planner:todoMeta", JSON.stringify(map)); } catch(e){}
+  },
+  getSubjectTags(){
+    try { const v = localStorage.getItem("planner:subjectTags"); return v ? JSON.parse(v) : null; }
+    catch(e){ return null; }
+  },
+  setSubjectTags(arr){
+    try { localStorage.setItem("planner:subjectTags", JSON.stringify(arr)); } catch(e){}
   }
 };
 
@@ -1086,6 +1224,33 @@ const CloudSyncAdapter = {
 
 /* 사용자가 지정한 유형(자동분류보다 우선) — id 기준 */
 let typeOverrides = {};
+
+/* ===== 할일 과목 태그 + 할일 메타(시작/종료/태그) ===== */
+const DEFAULT_TAGS = [
+  { name:'수학', color:'#5E87A8' },
+  { name:'물리', color:'#6FA08B' },
+  { name:'화학', color:'#C58F6E' },
+  { name:'기타', color:'#9DB4C4' }
+];
+const TAG_PALETTE = ['#5E87A8','#6FA08B','#C58F6E','#9DB4C4','#8E7BB0','#B07B97','#7B9BB0','#A8995E','#6E9CC5'];
+let subjectTags = DEFAULT_TAGS.slice();      // [{name,color}]
+let todoMeta = {};                            // { todoId: {start,end,tag} }
+
+function tagColor(name){
+  const t = subjectTags.find(x => x.name === name);
+  return t ? t.color : '#9DB4C4';
+}
+function addSubjectTag(name){
+  name = (name||'').trim();
+  if(!name) return null;
+  if(!subjectTags.find(x => x.name === name)){
+    const color = TAG_PALETTE[subjectTags.length % TAG_PALETTE.length];
+    subjectTags.push({ name, color });
+    Storage.setSubjectTags(subjectTags);
+    scheduleNotesSave();                      // Drive 동기화(태그 목록 공유)
+  }
+  return name;
+}
 
 /* 현재 활성 저장소 — 이 줄만 바꾸면 전체가 클라우드로 전환됨 */
 const Storage = LocalStorageAdapter;
@@ -1112,6 +1277,17 @@ const EventsStore = {
   },
   setGoogleTasks(arr){
     this.googleTasks = arr || [];   // 완료 상태는 구글 Tasks가 기준(그대로 사용)
+    this.reattachTodoMeta();
+  },
+  reattachTodoMeta(){
+    const attach = (t)=>{
+      const m = todoMeta[t.id];
+      t.startTime = m && m.start ? m.start : undefined;
+      t.endTime   = m && m.end   ? m.end   : undefined;
+      t.tag       = m && m.tag   ? m.tag   : undefined;
+    };
+    this.googleTasks.forEach(attach);
+    this.events.filter(e => e.type === 'todo').forEach(attach);
   },
   _all(){ return this.events.concat(this.googleEvents).concat(this.googleTasks); },
   persistUser(){
@@ -1402,15 +1578,29 @@ async function syncTasks(){  if(!isTokenValid()) return;
     renderPlannerPage(AppState.selectedDate);
   }catch(err){ console.error(err); }
 }
-/* 할일 추가 — 연결 시 구글 Tasks, 아니면 로컬 */
-function addTodoSmart(date, title){
+/* 할일 추가 — 연결 시 구글 Tasks, 아니면 로컬. meta={start,end,tag} */
+function addTodoSmart(date, title, meta){
+  meta = meta || {};
+  const hasMeta = meta.start || meta.end || meta.tag;
   if(isTokenValid()){
     setSyncStatus('할일 추가 중…');
     return gtaskInsert(title, date)
-      .then(()=> syncTasks())
-      .catch(err=>{ console.error(err); EventsStore.addTodo(date, title); renderCalendar(); renderPlannerPage(AppState.selectedDate); });
+      .then(created=>{
+        if(hasMeta && created && created.id){
+          todoMeta[created.id] = { start:meta.start||'', end:meta.end||'', tag:meta.tag||'' };
+          Storage.setTodoMeta(todoMeta);
+          scheduleNotesSave();
+        }
+        return syncTasks();
+      })
+      .catch(err=>{ console.error(err); const e=EventsStore.addTodo(date, title); if(hasMeta){ todoMeta[e.id]={start:meta.start||'',end:meta.end||'',tag:meta.tag||''}; Storage.setTodoMeta(todoMeta); EventsStore.reattachTodoMeta(); } renderCalendar(); renderPlannerPage(AppState.selectedDate); });
   } else {
-    EventsStore.addTodo(date, title);
+    const e = EventsStore.addTodo(date, title);
+    if(hasMeta){
+      todoMeta[e.id] = { start:meta.start||'', end:meta.end||'', tag:meta.tag||'' };
+      Storage.setTodoMeta(todoMeta);
+      EventsStore.reattachTodoMeta();
+    }
     renderCalendar();
     renderPlannerPage(AppState.selectedDate);
     return Promise.resolve();
@@ -1440,11 +1630,23 @@ function collectLocalNotes(){
       if(v) o[date] = v;
     }
   }
+  o._todoMeta = todoMeta;            // 할일 시간·태그 (두 기기 공유)
+  o._tags = subjectTags;             // 과목 태그 목록·색
   return o;
 }
 function applyNotes(obj){
-  Object.keys(obj || {}).forEach(date=>{
-    if(obj[date]) localStorage.setItem('planner:note:'+date, obj[date]);
+  Object.keys(obj || {}).forEach(key=>{
+    if(key === '_todoMeta'){
+      todoMeta = Object.assign({}, todoMeta, obj._todoMeta || {});
+      Storage.setTodoMeta(todoMeta);
+    } else if(key === '_tags'){
+      if(Array.isArray(obj._tags) && obj._tags.length){
+        subjectTags = obj._tags;
+        Storage.setSubjectTags(subjectTags);
+      }
+    } else if(key.indexOf('_') !== 0 && obj[key]){
+      localStorage.setItem('planner:note:'+key, obj[key]);
+    }
   });
 }
 async function gdriveFindNotes(){
@@ -1468,10 +1670,9 @@ async function gdriveLoadNotes(){
     if(!res.ok) throw new Error('Drive load failed: '+res.status);
     const obj = await res.json();
     applyNotes(obj);
-    // 현재 보고 있는 날짜 메모 즉시 반영
-    const note = Storage.getDayNote(AppState.selectedDate);
-    document.getElementById('fMemo').textContent = note;
-    document.getElementById('fMemoMobile').textContent = note;
+    EventsStore.reattachTodoMeta();   // 불러온 시간·태그를 할일에 반영
+    // 현재 보고 있는 날짜 메모/할일 즉시 반영
+    renderPlannerPage(AppState.selectedDate);
   }catch(e){ console.log('메모 불러오기 건너뜀', e); }
 }
 async function gdriveSaveNotes(){
@@ -1574,15 +1775,32 @@ function renderPlannerPage(date){
     contentsEl.innerHTML = `<span style="color:#B6C5D0">등록된 일정 없음</span>`;
   }
 
-  /* TOTAL — 완료 현황 + 시간 블록 총합 */
+  /* TOTAL — 완료 현황 + 할일 누적시간(태그별/전체) */
   const doneCount = events.filter(e => e.done).length;
-  let totalMin = 0;
-  events.forEach(e => { if(e.startTime && e.endTime) totalMin += toMin(e.endTime) - toMin(e.startTime); });
-  const h = Math.floor(totalMin/60), m = totalMin%60;
+  // 일정(시간블록) 총합은 참고용으로 유지
+  let blockMin = 0;
+  events.forEach(e => { if(e.type!=='todo' && e.startTime && e.endTime) blockMin += toMin(e.endTime) - toMin(e.startTime); });
+  // 할일 누적시간: 태그별 합산
+  const tagMin = {};
+  let todoMin = 0;
+  events.forEach(e => {
+    if(e.type==='todo' && e.startTime && e.endTime){
+      const d = toMin(e.endTime) - toMin(e.startTime);
+      if(d > 0){ const tg = e.tag || '기타'; tagMin[tg] = (tagMin[tg]||0) + d; todoMin += d; }
+    }
+  });
+  const fmtDur = (mins)=>{ const h=Math.floor(mins/60), m=mins%60; return `${h?h+'h':''}${m?m+'m':(h?'':'0m')}`; };
   const totalEl = document.getElementById('fTotal');
   if(events.length){
-    totalEl.innerHTML = `완료 <b>${doneCount} / ${events.length}</b>`
-      + (totalMin>0 ? ` · 시간 블록 ${h?h+'h ':''}${m}m` : '');
+    let html = `완료 <b>${doneCount} / ${events.length}</b>`;
+    if(todoMin > 0){
+      html += `<div class="total-study">할일 누적 <b>${fmtDur(todoMin)}</b></div>`;
+      const parts = Object.keys(tagMin).map(tg =>
+        `<span class="ts-tag"><i style="background:${tagColor(tg)}"></i>${tg} ${fmtDur(tagMin[tg])}</span>`
+      ).join('');
+      html += `<div class="total-bytag">${parts}</div>`;
+    }
+    totalEl.innerHTML = html;
   } else {
     totalEl.innerHTML = '';
   }
@@ -1662,6 +1880,14 @@ function buildTaskLine(e, showBadge){
     ['mousedown','touchstart'].forEach(ev => badge.addEventListener(ev, x=>x.stopPropagation()));
     badge.addEventListener('click', (x)=>{ x.stopPropagation(); openTypePicker(e); });
     line.appendChild(badge);
+  }
+
+  if(!showBadge && e.type === 'todo' && e.tag){
+    const dot = document.createElement('span');
+    dot.className = 'tag-dot';
+    dot.style.background = tagColor(e.tag);
+    dot.title = e.tag;
+    line.appendChild(dot);
   }
 
   const title = document.createElement('span');
@@ -1791,8 +2017,12 @@ function renderTimeTable(events){
     if(s == null || en == null || en <= s) return;
     const top = (s/SPAN)*100;
     const hgt = ((en-s)/SPAN)*100;
-    blocks += `<div class="tt-block ${e.type}${e.done?' done':''}" style="top:${top}%;height:${hgt}%;">
-        <div class="b-title">${displayTitle(e)}</div>
+    const isTodo = e.type === 'todo';
+    const bg = isTodo ? `background:${tagColor(e.tag||'기타')};` : '';
+    const cls = isTodo ? 'todo' : e.type;
+    const label = isTodo && e.tag ? `${e.tag} · ${displayTitle(e)}` : displayTitle(e);
+    blocks += `<div class="tt-block ${cls}${e.done?' done':''}" style="top:${top}%;height:${hgt}%;${bg}">
+        <div class="b-title">${label}</div>
         <div class="b-time">${e.startTime}–${e.endTime}</div>
       </div>`;
   });
@@ -1962,26 +2192,55 @@ document.getElementById('saveAdd').addEventListener('click', ()=>{
   }
 });
 
-/* ---------- 할일 추가 모달 (세로 모드 전용 분리 동작) ---------- */
+/* ---------- 할일 추가 모달 (시간 + 과목 태그) ---------- */
 const todoBack = document.getElementById('todoBack');
+function renderTagOptions(selected){
+  const sel = document.getElementById('tdTag');
+  sel.innerHTML = subjectTags.map(t => `<option value="${t.name}">${t.name}</option>`).join('')
+    + `<option value="__custom">+ 직접 추가</option>`;
+  if(selected) sel.value = selected;
+}
 function openTodoModal(){
   document.getElementById('tdTitle').value = '';
   document.getElementById('tdDate').value = AppState.selectedDate;
+  document.getElementById('tdStart').value = '';
+  document.getElementById('tdEnd').value = '';
+  renderTagOptions('기타');
+  const cw = document.getElementById('tdTagCustom');
+  cw.style.display = 'none'; cw.value = '';
   todoBack.classList.add('open');
   setTimeout(()=>document.getElementById('tdTitle').focus(), 50);
 }
 function closeTodoModal(){ todoBack.classList.remove('open'); }
 document.getElementById('cancelTodo').addEventListener('click', closeTodoModal);
 todoBack.addEventListener('click', (e)=>{ if(e.target === todoBack) closeTodoModal(); });
+document.getElementById('tdTag').addEventListener('change', (e)=>{
+  const cw = document.getElementById('tdTagCustom');
+  if(e.target.value === '__custom'){ cw.style.display = 'block'; cw.focus(); }
+  else cw.style.display = 'none';
+});
+document.getElementById('tdTagCustom').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    const name = addSubjectTag(e.target.value);
+    if(name){ renderTagOptions(name); e.target.style.display = 'none'; e.target.value = ''; }
+  }
+});
 document.getElementById('saveTodo').addEventListener('click', ()=>{
   const title = document.getElementById('tdTitle').value.trim();
   const date  = document.getElementById('tdDate').value;
   if(!title){ document.getElementById('tdTitle').focus(); return; }
   if(!date){ document.getElementById('tdDate').focus(); return; }
+  const start = document.getElementById('tdStart').value;
+  const end   = document.getElementById('tdEnd').value;
+  let tag = document.getElementById('tdTag').value;
+  if(tag === '__custom'){                       // 직접 추가 입력 중 저장한 경우
+    tag = addSubjectTag(document.getElementById('tdTagCustom').value) || '기타';
+  }
   AppState.selectedDate = date;
   AppState.view = { year: parseDate(date).getFullYear(), month: parseDate(date).getMonth() };
   closeTodoModal();
-  addTodoSmart(date, title);
+  addTodoSmart(date, title, { start, end, tag });
 });
 document.getElementById('tdTitle').addEventListener('keydown', (e)=>{
   if(e.key === 'Enter') document.getElementById('saveTodo').click();
@@ -1989,6 +2248,7 @@ document.getElementById('tdTitle').addEventListener('keydown', (e)=>{
 
 /* ---------- 세로 모드 FAB 버튼 ---------- */
 document.getElementById('fabTodo').addEventListener('click', openTodoModal);
+document.getElementById('openAddTodoLs').addEventListener('click', openTodoModal);
 document.getElementById('fabEvent').addEventListener('click', openModal);
 
 /* ---------- 구글 연동 동작 ---------- */
@@ -2092,14 +2352,273 @@ document.getElementById('gcalRefresh').addEventListener('click', ()=>{
   else signIn();
 });
 
+/* ============================================================================
+ *  포스트잇 (가로 전용 · 로컬 저장, 동기화 X)
+ * ========================================================================== */
+const POSTIT_COLORS = ['#FDE68A','#BFE3F2','#FBCFE8','#C8E6C9','#E9E4D8'];
+let postits = [];
+let pdrag = null;
+function loadPostits(){ try{ postits = JSON.parse(localStorage.getItem('planner:postits')||'[]'); }catch(e){ postits=[]; } }
+function savePostits(){ try{ localStorage.setItem('planner:postits', JSON.stringify(postits)); }catch(e){} }
+function renderPostits(){
+  const area = document.getElementById('postitArea');
+  if(!area) return;
+  area.innerHTML = '<div class="pa-head"><span>Post-it</span><button class="add-btn" id="addPostit">+ 포스트잇</button></div>';
+  postits.forEach(p=>{
+    const card = document.createElement('div');
+    card.className = 'postit';
+    card.style.background = p.color;
+    card.style.left = (p.x||16)+'px';
+    card.style.top  = (p.y||46)+'px';
+
+    const pin = document.createElement('div'); pin.className = 'pin';
+    const colors = document.createElement('div'); colors.className = 'colors';
+    POSTIT_COLORS.forEach(c=>{
+      const d = document.createElement('span'); d.className = 'cdot'; d.style.background = c;
+      d.addEventListener('click', (e)=>{ e.stopPropagation(); p.color = c; card.style.background = c; savePostits(); });
+      colors.appendChild(d);
+    });
+    const del = document.createElement('span'); del.className = 'del'; del.textContent = '×';
+    del.addEventListener('click', (e)=>{ e.stopPropagation(); postits = postits.filter(x=>x.id!==p.id); savePostits(); renderPostits(); });
+    pin.appendChild(colors); pin.appendChild(del);
+
+    const ta = document.createElement('textarea'); ta.value = p.text||''; ta.placeholder = '메모...';
+    ta.addEventListener('input', ()=>{ p.text = ta.value; savePostits(); });
+
+    card.appendChild(pin); card.appendChild(ta);
+    pin.addEventListener('mousedown', (e)=> startPDrag(e, card, p, area));
+    pin.addEventListener('touchstart', (e)=> startPDrag(e, card, p, area), {passive:false});
+    area.appendChild(card);
+  });
+  const addBtn = document.getElementById('addPostit');
+  if(addBtn) addBtn.addEventListener('click', addPostit);
+}
+function addPostit(){
+  const n = postits.length;
+  postits.push({ id:'p-'+Date.now(), text:'', color:POSTIT_COLORS[n%POSTIT_COLORS.length], x:16+(n%3)*20, y:48+(n%4)*16 });
+  savePostits(); renderPostits();
+  const tas = document.querySelectorAll('#postitArea .postit textarea');
+  if(tas.length) tas[tas.length-1].focus();
+}
+function startPDrag(e, card, p, area){
+  const t = e.touches ? e.touches[0] : e;
+  pdrag = { card, p, area, sx:t.clientX, sy:t.clientY, ox:card.offsetLeft, oy:card.offsetTop };
+  card.style.zIndex = 5;
+  if(e.cancelable) e.preventDefault();
+}
+function movePDrag(e){
+  if(!pdrag) return;
+  const t = e.touches ? e.touches[0] : e;
+  let nx = pdrag.ox + (t.clientX - pdrag.sx);
+  let ny = pdrag.oy + (t.clientY - pdrag.sy);
+  nx = Math.max(4, Math.min(nx, pdrag.area.clientWidth  - pdrag.card.offsetWidth  - 4));
+  ny = Math.max(40, Math.min(ny, pdrag.area.clientHeight - pdrag.card.offsetHeight - 4));
+  pdrag.card.style.left = nx+'px';
+  pdrag.card.style.top  = ny+'px';
+  if(e.cancelable) e.preventDefault();
+}
+function endPDrag(){
+  if(!pdrag) return;
+  pdrag.p.x = pdrag.card.offsetLeft;
+  pdrag.p.y = pdrag.card.offsetTop;
+  pdrag.card.style.zIndex = 1;
+  savePostits();
+  pdrag = null;
+}
+window.addEventListener('mousemove', movePDrag);
+window.addEventListener('mouseup', endPDrag);
+window.addEventListener('touchmove', movePDrag, {passive:false});
+window.addEventListener('touchend', endPDrag);
+
+/* ============================================================================
+ *  그림판 (가로 전용 · IndexedDB 인앱 저장, 동기화 X · 여러 장 슬라이딩)
+ * ========================================================================== */
+const CV_PENS = ['#263746','#3F6B8E','#C0392B','#27AE60','#E67E22','#8E44AD'];
+let drawPages = [''];      // 페이지별 PNG dataURL
+let curPage = 0;
+let penColor = '#263746', penSize = 3, isEraser = false;
+let drawCtx = null, cssW = 0, cssH = 0, drawSaveTimer = null;
+
+function drawDB(){
+  return new Promise((res,rej)=>{
+    const r = indexedDB.open('plannerDraw',1);
+    r.onupgradeneeded = ()=> r.result.createObjectStore('kv');
+    r.onsuccess = ()=> res(r.result);
+    r.onerror = ()=> rej(r.error);
+  });
+}
+async function idbGet(k){ const db=await drawDB(); return new Promise((res,rej)=>{ const t=db.transaction('kv').objectStore('kv').get(k); t.onsuccess=()=>res(t.result); t.onerror=()=>rej(t.error); }); }
+async function idbPut(k,v){ const db=await drawDB(); return new Promise((res,rej)=>{ const t=db.transaction('kv','readwrite').objectStore('kv').put(v,k); t.onsuccess=()=>res(); t.onerror=()=>rej(t.error); }); }
+
+function renderCanvasPad(){
+  const area = document.getElementById('canvasArea');
+  if(!area) return;
+  area.innerHTML =
+    '<div class="cv-head">'
+    + '<span>Draw</span>'
+    + '<span class="cv-pens" id="cvPens"></span>'
+    + '<input type="range" class="cv-size" id="cvSize" min="1" max="14" value="3">'
+    + '<button class="cv-tool active" id="cvPen" title="펜">✎</button>'
+    + '<button class="cv-tool" id="cvEraser" title="지우개">⌫</button>'
+    + '<button class="cv-tool" id="cvClear" title="이 장 지우기">✕</button>'
+    + '<button class="cv-tool" id="cvShare" title="이미지 공유">⤴</button>'
+    + '</div>'
+    + '<div class="cv-stage"><canvas class="cv-canvas" id="cvCanvas"></canvas></div>'
+    + '<div class="cv-foot">'
+    + '<button class="cv-nav" id="cvPrev">‹</button>'
+    + '<span class="pg" id="cvPg">1 / 1</span>'
+    + '<button class="cv-nav" id="cvNext">›</button>'
+    + '<button class="addpg" id="cvAdd">+ 새 장</button>'
+    + '</div>';
+
+  // 펜 색상
+  const pens = document.getElementById('cvPens');
+  CV_PENS.forEach((c,i)=>{
+    const d = document.createElement('span'); d.className = 'cv-pen' + (i===0?' active':''); d.style.background = c;
+    d.addEventListener('click', ()=>{
+      penColor = c; isEraser = false;
+      document.querySelectorAll('.cv-pen').forEach(x=>x.classList.remove('active'));
+      d.classList.add('active');
+      document.getElementById('cvPen').classList.add('active');
+      document.getElementById('cvEraser').classList.remove('active');
+    });
+    pens.appendChild(d);
+  });
+  document.getElementById('cvSize').addEventListener('input', e=> penSize = +e.target.value);
+  document.getElementById('cvPen').addEventListener('click', ()=>{
+    isEraser = false;
+    document.getElementById('cvPen').classList.add('active');
+    document.getElementById('cvEraser').classList.remove('active');
+  });
+  document.getElementById('cvEraser').addEventListener('click', ()=>{
+    isEraser = true;
+    document.getElementById('cvEraser').classList.add('active');
+    document.getElementById('cvPen').classList.remove('active');
+  });
+  document.getElementById('cvClear').addEventListener('click', ()=>{
+    if(!drawCtx) return;
+    if(!confirm('이 장의 그림을 지울까요?')) return;
+    drawCtx.clearRect(0,0,cssW,cssH);
+    drawPages[curPage] = '';
+    saveDraw();
+  });
+  document.getElementById('cvShare').addEventListener('click', shareDrawing);
+  document.getElementById('cvPrev').addEventListener('click', ()=>{ if(curPage>0){ curPage--; loadPageToCanvas(curPage); } });  document.getElementById('cvNext').addEventListener('click', ()=>{ if(curPage<drawPages.length-1){ curPage++; loadPageToCanvas(curPage); } });
+  document.getElementById('cvAdd').addEventListener('click', ()=>{ drawPages.push(''); curPage = drawPages.length-1; saveDraw(); loadPageToCanvas(curPage); });
+
+  // 캔버스 드로잉
+  const c = document.getElementById('cvCanvas');
+  let drawing = false, last = null;
+  const pos = (e)=>{ const r = c.getBoundingClientRect(); return { x:e.clientX-r.left, y:e.clientY-r.top }; };
+  c.addEventListener('pointerdown', (e)=>{
+    if(!drawCtx) fitCanvas();
+    if(!drawCtx) return;
+    drawing = true; last = pos(e); c.setPointerCapture(e.pointerId);
+    // 점 찍기
+    drawCtx.globalCompositeOperation = isEraser ? 'destination-out' : 'source-over';
+    drawCtx.strokeStyle = penColor; drawCtx.fillStyle = penColor;
+    drawCtx.lineWidth = isEraser ? penSize*5 : penSize;
+    drawCtx.beginPath(); drawCtx.arc(last.x,last.y,(drawCtx.lineWidth)/2,0,Math.PI*2); drawCtx.fill();
+    e.preventDefault();
+  });
+  c.addEventListener('pointermove', (e)=>{
+    if(!drawing) return;
+    const p = pos(e);
+    drawCtx.globalCompositeOperation = isEraser ? 'destination-out' : 'source-over';
+    drawCtx.strokeStyle = penColor;
+    drawCtx.lineWidth = isEraser ? penSize*5 : penSize;
+    drawCtx.beginPath(); drawCtx.moveTo(last.x,last.y); drawCtx.lineTo(p.x,p.y); drawCtx.stroke();
+    last = p; e.preventDefault();
+  });
+  const endStroke = ()=>{ if(drawing){ drawing = false; capturePage(); } };
+  c.addEventListener('pointerup', endStroke);
+  c.addEventListener('pointercancel', endStroke);
+  c.addEventListener('pointerleave', endStroke);
+}
+
+function fitCanvas(){
+  const c = document.getElementById('cvCanvas');
+  if(!c) return;
+  const stage = c.parentElement;
+  const w = stage.clientWidth, h = stage.clientHeight;
+  if(w === 0 || h === 0) return;     // 숨겨져 있음(세로 모드)
+  const dpr = window.devicePixelRatio || 1;
+  c.width = Math.round(w*dpr); c.height = Math.round(h*dpr);
+  const ctx = c.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  drawCtx = ctx; cssW = w; cssH = h;
+  loadPageToCanvas(curPage);
+}
+function loadPageToCanvas(i){
+  updatePgLabel();
+  if(!drawCtx) return;
+  drawCtx.clearRect(0,0,cssW,cssH);
+  const d = drawPages[i];
+  if(d){ const img = new Image(); img.onload = ()=> drawCtx.drawImage(img,0,0,cssW,cssH); img.src = d; }
+}
+function capturePage(){
+  const c = document.getElementById('cvCanvas');
+  if(!c) return;
+  drawPages[curPage] = c.toDataURL('image/png');
+  saveDraw();
+}
+/* 현재 페이지 그림을 iOS 공유 시트로 내보내기 (미지원 시 다운로드) */
+async function shareDrawing(){
+  const c = document.getElementById('cvCanvas');
+  if(!c) return;
+  const fname = `그림_${todayStr()}_p${curPage+1}.png`;
+  const blob = await new Promise(res => c.toBlob(res, 'image/png'));
+  if(!blob){ alert('이미지를 만들지 못했어요.'); return; }
+  const file = new File([blob], fname, { type:'image/png' });
+  // 1) 파일 공유 지원 시 공유 시트
+  if(navigator.canShare && navigator.canShare({ files:[file] })){
+    try{ await navigator.share({ files:[file], title:'그림' }); return; }
+    catch(e){ if(e && e.name === 'AbortError') return; /* 취소는 조용히 */ }
+  }
+  // 2) 대체: 다운로드
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = fname; document.body.appendChild(a); a.click();
+  a.remove(); setTimeout(()=> URL.revokeObjectURL(url), 1000);
+}
+function updatePgLabel(){
+  const el = document.getElementById('cvPg'); if(el) el.textContent = (curPage+1) + ' / ' + drawPages.length;
+  const pv = document.getElementById('cvPrev'), nx = document.getElementById('cvNext');
+  if(pv) pv.disabled = curPage<=0;
+  if(nx) nx.disabled = curPage>=drawPages.length-1;
+}
+function saveDraw(){
+  updatePgLabel();
+  clearTimeout(drawSaveTimer);
+  drawSaveTimer = setTimeout(()=> idbPut('pages', drawPages).catch(e=>console.log('그림 저장 실패',e)), 600);
+}
+async function loadDraw(){
+  try{
+    const rec = await idbGet('pages');
+    drawPages = (rec && rec.length) ? rec : [''];
+  }catch(e){ drawPages = ['']; }
+  curPage = 0;
+  fitCanvas();
+}
+// 화면 크기/방향 바뀌면 캔버스 다시 맞춤
+let fitTimer = null;
+window.addEventListener('resize', ()=>{ clearTimeout(fitTimer); fitTimer = setTimeout(fitCanvas, 200); });
+
 /* 초기화 */
 (function init(){
   EventsStore.load();                  // 저장된 사용자 일정 + 완료 상태 불러오기
   typeOverrides = Storage.getTypeMap();   // 사용자가 지정한 유형 불러오기
+  todoMeta = Storage.getTodoMeta();       // 할일 시간·태그
+  const savedTags = Storage.getSubjectTags();
+  if(savedTags && savedTags.length) subjectTags = savedTags;
+  EventsStore.reattachTodoMeta();
   const t = parseDate(todayStr());
   AppState.view = { year: t.getFullYear(), month: t.getMonth() };
   renderCalendar();
   renderPlannerPage(AppState.selectedDate);
+  loadPostits(); renderPostits();      // 포스트잇 (가로 전용)
+  renderCanvasPad(); loadDraw();       // 그림판 (가로 전용)
 
   loadToken();                         // 저장된 토큰 복원
   if(isTokenValid()){                  // 유효하면 바로 동기화 (터치/팝업 없음)
