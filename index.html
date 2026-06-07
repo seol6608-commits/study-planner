@@ -384,6 +384,9 @@ body{
 .add-btn.ghost:hover{color:var(--blue-main);}
 .tag-dot{flex:0 0 auto;width:8px;height:8px;border-radius:50%;margin-right:2px;}
 .total-study{margin-top:6px;font-size:13px;color:var(--text);}
+.study-pct{color:var(--text-sub);font-size:12px;}
+.study-bar{margin-top:6px;height:8px;border-radius:5px;background:rgba(157,180,196,.22);overflow:hidden;}
+.study-bar-fill{height:100%;border-radius:5px;background:var(--blue-main);transition:width .4s ease;}
 .total-bytag{margin-top:4px;display:flex;flex-wrap:wrap;gap:4px 12px;}
 .ts-tag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-sub);}
 .ts-tag i{width:8px;height:8px;border-radius:2px;display:inline-block;}
@@ -619,15 +622,16 @@ body{
 }
 .pa-head .add-btn{pointer-events:auto;}
 .postit{
-  position:absolute; width:154px; min-height:110px;
+  position:absolute; width:168px; min-height:112px;
   border-radius:4px; padding:7px 9px 9px;
   box-shadow:0 7px 18px -9px rgba(38,55,70,.55);
   display:flex; flex-direction:column; gap:5px; z-index:1;
 }
-.postit .pin{height:15px; display:flex; gap:5px; align-items:center; cursor:grab; touch-action:none;}
-.postit .pin .colors{display:flex; gap:4px;}
-.postit .pin .cdot{width:11px;height:11px;border-radius:50%;cursor:pointer;border:1px solid rgba(0,0,0,.1);}
-.postit .pin .del{margin-left:auto;cursor:pointer;color:rgba(0,0,0,.38);font-size:15px;line-height:1;}
+.postit .pin{height:18px; display:flex; gap:6px; align-items:center; cursor:grab; touch-action:none;}
+.postit .pin .colors{display:flex; gap:6px;}
+.postit .pin .cdot{width:16px;height:16px;border-radius:50%;cursor:pointer;border:1px solid rgba(0,0,0,.12);}
+.postit .pin .cdot:active{transform:scale(.88);}
+.postit .pin .del{margin-left:auto;cursor:pointer;color:rgba(0,0,0,.42);font-size:18px;line-height:1;padding:0 2px;}
 .postit textarea{
   flex:1; border:none; background:transparent; resize:none; outline:none;
   font-family:var(--font-ko); font-size:12.5px; color:#3a382f; line-height:1.45;
@@ -998,7 +1002,7 @@ body{
 <!-- ===================== 할일 추가 모달 ===================== -->
 <div class="modal-back" id="todoBack">
   <div class="modal" role="dialog" aria-modal="true">
-    <div class="m-head">할일 추가</div>
+    <div class="m-head" id="tdHead">할일 추가</div>
     <div class="m-body">
       <div class="m-field">
         <label>할일</label>
@@ -1553,6 +1557,22 @@ async function gtaskDelete(id){
     throw new Error('Task delete failed: ' + res.status);
   }
 }
+async function gtaskPatchFields(id, fields){
+  // fields: { title, due(YYYY-MM-DD) }
+  const body = {};
+  if(fields.title != null) body.title = fields.title;
+  if(fields.date)  body.due = fields.date + 'T00:00:00.000Z';
+  const res = await fetch(GTASK_BASE + '/' + encodeURIComponent(id), {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok){
+    if(res.status === 401){ accessToken = null; tokenExpiry = 0; updateAuthUI(); }
+    throw new Error('Task patch fields failed: ' + res.status);
+  }
+  return res.json();
+}
 /* 할일만 다시 불러와 화면 갱신 */
 async function syncTasks(){  if(!isTokenValid()) return;
   try{
@@ -1764,13 +1784,13 @@ function renderPlannerPage(date){
   // 일정(시간블록) 총합은 참고용으로 유지
   let blockMin = 0;
   events.forEach(e => { if(e.type!=='todo' && e.startTime && e.endTime) blockMin += toMin(e.endTime) - toMin(e.startTime); });
-  // 할일 누적시간: 태그별 합산
+  // 할일 누적시간: 태그별 합산 + 완료 시간
   const tagMin = {};
-  let todoMin = 0;
+  let todoMin = 0, doneMin = 0;
   events.forEach(e => {
     if(e.type==='todo' && e.startTime && e.endTime){
       const d = toMin(e.endTime) - toMin(e.startTime);
-      if(d > 0){ const tg = e.tag || '기타'; tagMin[tg] = (tagMin[tg]||0) + d; todoMin += d; }
+      if(d > 0){ const tg = e.tag || '기타'; tagMin[tg] = (tagMin[tg]||0) + d; todoMin += d; if(e.done) doneMin += d; }
     }
   });
   const fmtDur = (mins)=>{ const h=Math.floor(mins/60), m=mins%60; return `${h?h+'h':''}${m?m+'m':(h?'':'0m')}`; };
@@ -1778,7 +1798,9 @@ function renderPlannerPage(date){
   if(events.length){
     let html = `완료 <b>${doneCount} / ${events.length}</b>`;
     if(todoMin > 0){
-      html += `<div class="total-study">할일 누적 <b>${fmtDur(todoMin)}</b></div>`;
+      const pct = Math.round((doneMin/todoMin)*100);
+      html += `<div class="total-study">할일 진행 <b>${fmtDur(doneMin)}</b> / ${fmtDur(todoMin)} <span class="study-pct">(${pct}%)</span></div>`;
+      html += `<div class="study-bar"><div class="study-bar-fill" style="width:${pct}%"></div></div>`;
       const parts = Object.keys(tagMin).map(tg =>
         `<span class="ts-tag"><i style="background:${tagColor(tg)}"></i>${tg} ${fmtDur(tagMin[tg])}</span>`
       ).join('');
@@ -1884,6 +1906,11 @@ function buildTaskLine(e, showBadge){
   const title = document.createElement('span');
   title.className = 't-title';
   title.textContent = e.title;
+  if(!showBadge && e.type === 'todo'){
+    title.style.cursor = 'pointer';
+    title.title = '탭하여 수정';
+    title.addEventListener('click', (x)=>{ x.stopPropagation(); openTodoEdit(e); });
+  }
   line.appendChild(title);
 
   if(timeTxt){
@@ -2160,8 +2187,9 @@ document.getElementById('saveAdd').addEventListener('click', ()=>{
   }
 });
 
-/* ---------- 할일 추가 모달 (시간 + 과목 태그) ---------- */
+/* ---------- 할일 추가/수정 모달 (시간 + 과목 태그) ---------- */
 const todoBack = document.getElementById('todoBack');
+let editingTodo = null;     // 수정 중인 할일 (없으면 추가 모드)
 function renderTagOptions(selected){
   const sel = document.getElementById('tdTag');
   sel.innerHTML = subjectTags.map(t => `<option value="${t.name}">${t.name}</option>`).join('')
@@ -2169,11 +2197,28 @@ function renderTagOptions(selected){
   if(selected) sel.value = selected;
 }
 function openTodoModal(){
+  editingTodo = null;
+  document.getElementById('tdHead').textContent = '할일 추가';
+  document.getElementById('saveTodo').textContent = '추가';
   document.getElementById('tdTitle').value = '';
   document.getElementById('tdDate').value = AppState.selectedDate;
   document.getElementById('tdStart').value = '';
   document.getElementById('tdEnd').value = '';
   renderTagOptions('기타');
+  const cw = document.getElementById('tdTagCustom');
+  cw.style.display = 'none'; cw.value = '';
+  todoBack.classList.add('open');
+  setTimeout(()=>document.getElementById('tdTitle').focus(), 50);
+}
+function openTodoEdit(e){
+  editingTodo = e;
+  document.getElementById('tdHead').textContent = '할일 수정';
+  document.getElementById('saveTodo').textContent = '저장';
+  document.getElementById('tdTitle').value = e.title || '';
+  document.getElementById('tdDate').value = e.date || AppState.selectedDate;
+  document.getElementById('tdStart').value = e.startTime || '';
+  document.getElementById('tdEnd').value = e.endTime || '';
+  renderTagOptions(e.tag || '기타');
   const cw = document.getElementById('tdTagCustom');
   cw.style.display = 'none'; cw.value = '';
   todoBack.classList.add('open');
@@ -2207,9 +2252,32 @@ document.getElementById('saveTodo').addEventListener('click', ()=>{
   }
   AppState.selectedDate = date;
   AppState.view = { year: parseDate(date).getFullYear(), month: parseDate(date).getMonth() };
+  const editing = editingTodo;
   closeTodoModal();
-  addTodoSmart(date, title, { start, end, tag });
+  if(editing){ updateTodoEdit(editing, { title, date, start, end, tag }); }
+  else { addTodoSmart(date, title, { start, end, tag }); }
 });
+/* 할일 수정 저장 */
+function updateTodoEdit(e, f){
+  // 시간·태그 메타 갱신
+  todoMeta[e.id] = { start:f.start||'', end:f.end||'', tag:f.tag||'' };
+  Storage.setTodoMeta(todoMeta);
+  scheduleNotesSave();
+  if(e.source === 'google-tasks' && isTokenValid()){
+    // 구글 Tasks 제목·날짜 수정 후 동기화
+    setSyncStatus('할일 수정 중…');
+    gtaskPatchFields(e.id, { title:f.title, date:f.date })
+      .then(()=> syncTasks())
+      .catch(err=>{ console.error(err); setSyncStatus('할일 수정 실패', true); });
+  } else {
+    // 로컬 할일 수정
+    e.title = f.title; e.date = f.date;
+    EventsStore.persistUser();
+    EventsStore.reattachTodoMeta();
+    renderCalendar();
+    renderPlannerPage(AppState.selectedDate);
+  }
+}
 document.getElementById('tdTitle').addEventListener('keydown', (e)=>{
   if(e.key === 'Enter') document.getElementById('saveTodo').click();
 });
@@ -2344,10 +2412,12 @@ function renderPostits(){
     const colors = document.createElement('div'); colors.className = 'colors';
     POSTIT_COLORS.forEach(c=>{
       const d = document.createElement('span'); d.className = 'cdot'; d.style.background = c;
+      ['mousedown','touchstart'].forEach(ev => d.addEventListener(ev, x=>x.stopPropagation()));
       d.addEventListener('click', (e)=>{ e.stopPropagation(); p.color = c; card.style.background = c; savePostits(); });
       colors.appendChild(d);
     });
     const del = document.createElement('span'); del.className = 'del'; del.textContent = '×';
+    ['mousedown','touchstart'].forEach(ev => del.addEventListener(ev, x=>x.stopPropagation()));
     del.addEventListener('click', (e)=>{ e.stopPropagation(); postits = postits.filter(x=>x.id!==p.id); savePostits(); renderPostits(); });
     pin.appendChild(colors); pin.appendChild(del);
 
