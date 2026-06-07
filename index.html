@@ -642,6 +642,7 @@ body{
   padding:10px 14px; border-bottom:1px solid var(--line);
 }
 .st-title{font-family:var(--font-label); font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--text-sub);}
+.st-period{display:block;margin-top:3px;font-family:var(--font-ko);font-style:normal;font-size:13px;letter-spacing:0;text-transform:none;color:var(--blue-deep);}
 .st-toggle{display:flex; gap:4px;}
 .st-toggle button{
   font-family:var(--font-ko); font-size:12px; padding:4px 12px; border-radius:8px; cursor:pointer;
@@ -2486,6 +2487,17 @@ function studyAggregate(range){
     to   = new Date(from); to.setDate(from.getDate()+6);
   }
   const fromS = fmt(from), toS = fmt(to);
+  // 기간 라벨
+  let label;
+  if(range === "month"){
+    label = (base.getMonth()+1) + "월";
+  } else {
+    // 그 주 목요일이 속한 달 기준 주차(ISO식 근사): 해당 달에서 몇 번째 주인지
+    const thu = new Date(from); thu.setDate(from.getDate()+3);   // 주의 목요일
+    const firstThu = new Date(thu.getFullYear(), thu.getMonth(), 1);
+    const wk = Math.ceil((thu.getDate() + ((firstThu.getDay()+6)%7)) / 7);
+    label = (thu.getMonth()+1) + "월 " + wk + "주차";
+  }
   const all = EventsStore.getAll();
   const tagMin = {}; let total = 0;
   all.forEach(e=>{
@@ -2494,12 +2506,12 @@ function studyAggregate(range){
       if(d>0){ const tg = e.tag || "기타"; tagMin[tg]=(tagMin[tg]||0)+d; total+=d; }
     }
   });
-  return { tagMin, total, fromS, toS };
+  return { tagMin, total, fromS, toS, label };
 }
 function renderStats(){
   const area = document.getElementById("statsArea");
   if(!area) return;
-  const { tagMin, total } = studyAggregate(statsRange);
+  const { tagMin, total, label } = studyAggregate(statsRange);
   const fmtDur = (m)=>{ const h=Math.floor(m/60), mm=m%60; return `${h?h+"h":""}${mm?mm+"m":(h?"":"0m")}`; };
   let body;
   if(total <= 0){
@@ -2517,7 +2529,7 @@ function renderStats(){
   }
   area.innerHTML =
     `<div class="st-head">`
-    + `<span class="st-title">Study Time</span>`
+    + `<span class="st-title">Study Time<em class="st-period">${label}</em></span>`
     + `<span class="st-toggle">`
     + `<button data-r="week" class="${statsRange==="week"?"active":""}">주간</button>`
     + `<button data-r="month" class="${statsRange==="month"?"active":""}">월간</button>`
