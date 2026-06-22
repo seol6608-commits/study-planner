@@ -887,6 +887,112 @@ body{
 .m-actions .btn-save{background:var(--blue-main);color:#fff;border-color:var(--blue-main);}
 .m-actions .btn-save:hover{background:var(--blue-deep);}
 #mCustomWrap{display:none;}
+
+/* ============================================================
+   템플릿 선택/관리
+   ============================================================ */
+.template-modal{max-width:620px;}
+.template-body{padding-bottom:10px;}
+.tpl-topnote{
+  margin-bottom:10px;
+  font-size:12px;
+  color:var(--text-sub);
+  line-height:1.5;
+}
+.tpl-list{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin-bottom:12px;
+}
+.tpl-pill{
+  border:1px solid var(--line);
+  background:#fff;
+  color:var(--text-sub);
+  border-radius:999px;
+  padding:6px 11px;
+  font-family:var(--font-ko);
+  font-size:12px;
+  cursor:pointer;
+  transition:.13s;
+}
+.tpl-pill:hover{background:var(--blue-bg);border-color:var(--blue-main);color:var(--blue-deep);}
+.tpl-pill.active{background:var(--blue-main);border-color:var(--blue-main);color:#fff;}
+.tpl-editor{
+  border:1px solid var(--line-soft);
+  border-radius:12px;
+  background:rgba(238,246,250,.45);
+  padding:12px;
+}
+.tpl-name-field{margin-bottom:10px;}
+.tpl-row-head,
+.tpl-block-row{
+  display:grid;
+  grid-template-columns:70px 70px minmax(0,1fr) 86px 28px;
+  gap:6px;
+  align-items:center;
+}
+.tpl-row-head{
+  font-size:10.5px;
+  color:var(--text-sub);
+  margin-bottom:5px;
+  padding:0 2px;
+}
+.tpl-blocks{display:flex;flex-direction:column;gap:6px;}
+.tpl-block-row input,
+.tpl-block-row select{
+  width:100%;
+  min-width:0;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:#fff;
+  color:var(--text);
+  font-family:var(--font-ko);
+  font-size:12px;
+  padding:7px 8px;
+  outline:none;
+}
+.tpl-block-row input:focus,
+.tpl-block-row select:focus{border-color:var(--blue-main);}
+.tpl-block-del{
+  width:28px;height:28px;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:#fff;color:#B6C5D0;
+  font-size:17px;line-height:1;
+  cursor:pointer;
+}
+.tpl-block-del:active{background:rgba(193,138,138,.15);color:#C18A8A;}
+.template-actions{flex-wrap:wrap;}
+.template-actions .btn-save{margin-left:auto;}
+.tpl-empty{
+  font-size:12px;
+  color:var(--text-sub);
+  text-align:center;
+  padding:18px 0;
+}
+@media (max-width:600px){
+  .template-modal{max-width:none;}
+  .template-body{padding:14px 14px 6px;}
+  .tpl-list{max-height:78px;overflow-y:auto;padding-bottom:2px;}
+  .tpl-row-head{display:none;}
+  .tpl-block-row{
+    grid-template-columns:1fr 1fr 30px;
+    gap:6px;
+    padding:8px;
+    border:1px solid var(--line-soft);
+    border-radius:10px;
+    background:#fff;
+  }
+  .tpl-block-row .tpl-title{grid-column:1 / 3;}
+  .tpl-block-row .tpl-tag{grid-column:1 / 3;}
+  .tpl-block-row .tpl-block-del{grid-column:3;grid-row:1 / 3;height:100%;}
+  .template-actions{justify-content:stretch;}
+  .template-actions button{flex:1 1 30%;padding:8px 10px;}
+  .template-actions .btn-save{margin-left:0;flex-basis:100%;}
+}
+
 /* ============================================================
    구글 연동 버튼 / 동기화 상태
    ============================================================ */
@@ -983,7 +1089,7 @@ body{
           </section>
 
           <section class="field task">
-            <h3>Task<button class="add-btn" id="openAddTodoLs">+ 할일</button></h3>
+            <h3>Task<span class="task-add-group"><button class="add-btn" id="openAddTodoLs">+ 할일</button><button class="add-btn ghost" id="openTemplateLs">템플릿</button></span></h3>
             <div class="task-body" id="fTaskTodo"></div>
           </section>
 
@@ -1023,6 +1129,7 @@ body{
 <!-- ===================== 세로 모드 전용 추가 버튼 ===================== -->
 <div class="fab-bar" id="fabBar">
   <button class="fab-todo" id="fabTodo">+ 할일 추가</button>
+  <button class="fab-event" id="fabTemplate">템플릿</button>
 </div>
 
 <!-- ===================== 할일 추가 모달 ===================== -->
@@ -1058,6 +1165,36 @@ body{
     <div class="m-actions">
       <button class="btn-cancel" id="cancelTodo">취소</button>
       <button class="btn-save" id="saveTodo">추가</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===================== 템플릿 선택/관리 모달 ===================== -->
+<div class="modal-back" id="templateBack">
+  <div class="modal template-modal" role="dialog" aria-modal="true">
+    <div class="m-head">템플릿</div>
+    <div class="m-body template-body">
+      <div class="tpl-topnote">선택한 날짜에 시간표 블록을 할일로 추가합니다.</div>
+      <div class="tpl-list" id="tplList"></div>
+
+      <div class="tpl-editor" id="tplEditor">
+        <div class="m-field tpl-name-field">
+          <label>템플릿 이름</label>
+          <input type="text" id="tplName" />
+        </div>
+        <div class="tpl-row-head">
+          <span>시작</span><span>종료</span><span>제목</span><span>태그</span><span></span>
+        </div>
+        <div class="tpl-blocks" id="tplBlocks"></div>
+      </div>
+    </div>
+    <div class="m-actions template-actions">
+      <button class="btn-cancel" id="tplNew">+ 새 템플릿</button>
+      <button class="btn-cancel" id="tplAddBlock">+ 시간 블록</button>
+      <button class="btn-cancel" id="tplDelete">삭제</button>
+      <button class="btn-cancel" id="tplClose">닫기</button>
+      <button class="btn-save" id="tplApply">오늘 적용</button>
     </div>
   </div>
 </div>
@@ -1219,6 +1356,13 @@ const LocalStorageAdapter = {
   },
   setSubjectTags(arr){
     try { localStorage.setItem("planner:subjectTags", JSON.stringify(arr)); } catch(e){}
+  },
+  getTemplates(){
+    try { const v = localStorage.getItem("planner:templates"); return v ? JSON.parse(v) : null; }
+    catch(e){ return null; }
+  },
+  setTemplates(arr){
+    try { localStorage.setItem("planner:templates", JSON.stringify(arr)); } catch(e){}
   }
 };
 
@@ -1234,6 +1378,8 @@ const CloudSyncAdapter = {
   async setDeleted(arr){ /* TODO */ },
   async getTypeMap(){ /* TODO */ return {}; },
   async setTypeMap(map){ /* TODO */ },
+  async getTemplates(){ /* TODO */ return null; },
+  async setTemplates(arr){ /* TODO */ },
   async fetchEvents(){ /* TODO: 원격 events 컬렉션 읽기 */ return []; }
 };
 
@@ -1245,11 +1391,128 @@ const DEFAULT_TAGS = [
   { name:'수학', color:'#5E87A8' },
   { name:'물리', color:'#6FA08B' },
   { name:'화학', color:'#C58F6E' },
+  { name:'현강', color:'#4E86A0' },
+  { name:'종합', color:'#8E7BB0' },
+  { name:'정리', color:'#7B9BB0' },
+  { name:'휴식', color:'#B6C5D0' },
   { name:'기타', color:'#9DB4C4' }
 ];
 const TAG_PALETTE = ['#5E87A8','#6FA08B','#C58F6E','#9DB4C4','#8E7BB0','#B07B97','#7B9BB0','#A8995E','#6E9CC5'];
 let subjectTags = DEFAULT_TAGS.slice();      // [{name,color}]
 let todoMeta = {};                            // { todoId: {start,end,tag} }
+
+let studyTemplates = [];
+let selectedTemplateId = null;
+
+const DEFAULT_TEMPLATES = [
+  { id:'tpl-standard', name:'표준형', blocks:[
+    {start:'08:00',end:'09:30',title:'수학',tag:'수학'},
+    {start:'09:40',end:'11:10',title:'물리',tag:'물리'},
+    {start:'11:20',end:'12:00',title:'수학/물리',tag:'수학/물리'},
+    {start:'12:00',end:'12:40',title:'점심/휴식',tag:'휴식'},
+    {start:'12:40',end:'14:10',title:'화학',tag:'화학'},
+    {start:'14:20',end:'15:50',title:'수학',tag:'수학'},
+    {start:'16:00',end:'17:00',title:'물리',tag:'물리'},
+    {start:'17:00',end:'18:40',title:'저녁/휴식',tag:'휴식'},
+    {start:'18:40',end:'20:10',title:'화학',tag:'화학'},
+    {start:'20:20',end:'21:50',title:'종합',tag:'종합'},
+    {start:'21:50',end:'22:00',title:'정리',tag:'정리'}
+  ]},
+  { id:'tpl-math-physics', name:'수물형', blocks:[
+    {start:'08:00',end:'09:30',title:'수학',tag:'수학'},
+    {start:'09:40',end:'11:10',title:'물리',tag:'물리'},
+    {start:'11:20',end:'12:00',title:'수학',tag:'수학'},
+    {start:'12:00',end:'12:40',title:'점심/휴식',tag:'휴식'},
+    {start:'12:40',end:'14:10',title:'수학',tag:'수학'},
+    {start:'14:20',end:'15:50',title:'물리',tag:'물리'},
+    {start:'16:00',end:'17:00',title:'수학/물리',tag:'수학/물리'},
+    {start:'17:00',end:'18:40',title:'저녁/휴식',tag:'휴식'},
+    {start:'18:40',end:'20:10',title:'수학',tag:'수학'},
+    {start:'20:20',end:'21:50',title:'물리',tag:'물리'},
+    {start:'21:50',end:'22:00',title:'정리',tag:'정리'}
+  ]},
+  { id:'tpl-math-focus', name:'수학집중', blocks:[
+    {start:'08:00',end:'09:30',title:'수학',tag:'수학'},
+    {start:'09:40',end:'11:10',title:'수학',tag:'수학'},
+    {start:'11:20',end:'12:00',title:'물리',tag:'물리'},
+    {start:'12:00',end:'12:40',title:'점심/휴식',tag:'휴식'},
+    {start:'12:40',end:'14:10',title:'물리',tag:'물리'},
+    {start:'14:20',end:'15:50',title:'수학',tag:'수학'},
+    {start:'16:00',end:'17:00',title:'화학',tag:'화학'},
+    {start:'17:00',end:'18:40',title:'저녁/휴식',tag:'휴식'},
+    {start:'18:40',end:'20:10',title:'수학',tag:'수학'},
+    {start:'20:20',end:'21:50',title:'수학',tag:'수학'},
+    {start:'21:50',end:'22:00',title:'정리',tag:'정리'}
+  ]},
+  { id:'tpl-physics-focus', name:'물리집중', blocks:[
+    {start:'08:00',end:'09:30',title:'물리',tag:'물리'},
+    {start:'09:40',end:'11:10',title:'물리',tag:'물리'},
+    {start:'11:20',end:'12:00',title:'수학',tag:'수학'},
+    {start:'12:00',end:'12:40',title:'점심/휴식',tag:'휴식'},
+    {start:'12:40',end:'14:10',title:'수학',tag:'수학'},
+    {start:'14:20',end:'15:50',title:'물리',tag:'물리'},
+    {start:'16:00',end:'17:00',title:'화학',tag:'화학'},
+    {start:'17:00',end:'18:40',title:'저녁/휴식',tag:'휴식'},
+    {start:'18:40',end:'20:10',title:'물리',tag:'물리'},
+    {start:'20:20',end:'21:50',title:'물리',tag:'물리'},
+    {start:'21:50',end:'22:00',title:'정리',tag:'정리'}
+  ]},
+  { id:'tpl-chem-focus', name:'화학집중', blocks:[
+    {start:'08:00',end:'09:30',title:'화학',tag:'화학'},
+    {start:'09:40',end:'11:10',title:'화학',tag:'화학'},
+    {start:'11:20',end:'12:00',title:'수학',tag:'수학'},
+    {start:'12:00',end:'12:40',title:'점심/휴식',tag:'휴식'},
+    {start:'12:40',end:'14:10',title:'수학',tag:'수학'},
+    {start:'14:20',end:'15:50',title:'화학',tag:'화학'},
+    {start:'16:00',end:'17:00',title:'물리',tag:'물리'},
+    {start:'17:00',end:'18:40',title:'저녁/휴식',tag:'휴식'},
+    {start:'18:40',end:'20:10',title:'화학',tag:'화학'},
+    {start:'20:20',end:'21:50',title:'화학',tag:'화학'},
+    {start:'21:50',end:'22:00',title:'정리',tag:'정리'}
+  ]},
+  { id:'tpl-live-13-17', name:'현강 13-17', blocks:[
+    {start:'08:00',end:'09:30',title:'수학',tag:'수학'},
+    {start:'09:40',end:'10:50',title:'물리',tag:'물리'},
+    {start:'11:00',end:'13:00',title:'이동/휴식/식사',tag:'휴식'},
+    {start:'13:00',end:'17:00',title:'현강',tag:'현강'},
+    {start:'17:00',end:'17:30',title:'이동/휴식',tag:'휴식'},
+    {start:'17:30',end:'19:00',title:'화학',tag:'화학'},
+    {start:'19:10',end:'20:30',title:'수학/물리',tag:'수학/물리'}
+  ]},
+  { id:'tpl-live-08-17', name:'현강 08-17', blocks:[
+    {start:'08:00',end:'17:00',title:'현강',tag:'현강'},
+    {start:'17:00',end:'19:30',title:'이동/휴식/식사',tag:'휴식'},
+    {start:'19:30',end:'20:50',title:'수학',tag:'수학'},
+    {start:'21:00',end:'22:00',title:'물리',tag:'물리'}
+  ]}
+];
+
+function cloneDefaultTemplates(){ return JSON.parse(JSON.stringify(DEFAULT_TEMPLATES)); }
+function sortTemplateBlocks(blocks){
+  return (blocks || []).slice().sort((a,b)=> (a.start || '').localeCompare(b.start || ''));
+}
+function loadTemplates(){
+  const saved = Storage.getTemplates && Storage.getTemplates();
+  studyTemplates = Array.isArray(saved) && saved.length ? saved : cloneDefaultTemplates();
+  studyTemplates.forEach(t => { if(!Array.isArray(t.blocks)) t.blocks = []; });
+  selectedTemplateId = studyTemplates[0] ? studyTemplates[0].id : null;
+  if(!saved || !saved.length) saveTemplates(false);
+}
+function saveTemplates(sync){
+  if(Storage.setTemplates) Storage.setTemplates(studyTemplates);
+  if(sync !== false) scheduleNotesSave();
+}
+function currentTemplate(){
+  return studyTemplates.find(t => t.id === selectedTemplateId) || studyTemplates[0] || null;
+}
+function escapeHtml(s){
+  return String(s == null ? '' : s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+}
+function templateTagOptions(selected){
+  const set = new Set(subjectTags.map(t => t.name));
+  ['수학','물리','화학','현강','종합','정리','휴식','수학/물리','기타'].forEach(x => set.add(x));
+  return Array.from(set).map(name => `<option value="${escapeHtml(name)}" ${name===selected?'selected':''}>${escapeHtml(name)}</option>`).join('');
+}
 
 function tagColor(name){
   const t = subjectTags.find(x => x.name === name);
@@ -1663,6 +1926,7 @@ function collectLocalNotes(){
   }
   o._todoMeta = todoMeta;            // 할일 시간·태그 (두 기기 공유)
   o._tags = subjectTags;             // 과목 태그 목록·색
+  o._templates = studyTemplates;       // 시간표 템플릿
   return o;
 }
 function applyNotes(obj){
@@ -1674,6 +1938,12 @@ function applyNotes(obj){
       if(Array.isArray(obj._tags) && obj._tags.length){
         subjectTags = obj._tags;
         Storage.setSubjectTags(subjectTags);
+      }
+    } else if(key === '_templates'){
+      if(Array.isArray(obj._templates) && obj._templates.length){
+        studyTemplates = obj._templates;
+        Storage.setTemplates(studyTemplates);
+        selectedTemplateId = studyTemplates[0] ? studyTemplates[0].id : null;
       }
     } else if(key.indexOf('_') !== 0 && obj[key]){
       localStorage.setItem('planner:note:'+key, obj[key]);
@@ -1816,8 +2086,10 @@ function renderPlannerPage(date){
   let todoMin = 0, doneMin = 0;
   events.forEach(e => {
     if(e.type==='todo' && e.startTime && e.endTime){
+      const tg = e.tag || '기타';
+      if(tg === '휴식') return;
       const d = toMin(e.endTime) - toMin(e.startTime);
-      if(d > 0){ const tg = e.tag || '기타'; tagMin[tg] = (tagMin[tg]||0) + d; todoMin += d; if(e.done) doneMin += d; }
+      if(d > 0){ tagMin[tg] = (tagMin[tg]||0) + d; todoMin += d; if(e.done) doneMin += d; }
     }
   });
   const fmtDur = (mins)=>{ const h=Math.floor(mins/60), m=mins%60; return `${h?h+'h':''}${m?m+'m':(h?'':'0m')}`; };
@@ -2351,6 +2623,133 @@ document.getElementById('openAddTodoLs').addEventListener('click', openTodoModal
 const _fabEvent = document.getElementById('fabEvent');
 if(_fabEvent) _fabEvent.addEventListener('click', openModal);
 
+
+/* ---------- 템플릿 선택/관리 ---------- */
+const templateBack = document.getElementById('templateBack');
+function openTemplateModal(){
+  if(!studyTemplates.length) loadTemplates();
+  renderTemplateModal();
+  templateBack.classList.add('open');
+}
+function closeTemplateModal(){ templateBack.classList.remove('open'); }
+function renderTemplateModal(){
+  const list = document.getElementById('tplList');
+  const tpl = currentTemplate();
+  list.innerHTML = studyTemplates.map(t =>
+    `<button class="tpl-pill ${t.id===selectedTemplateId?'active':''}" data-id="${escapeHtml(t.id)}">${escapeHtml(t.name)}</button>`
+  ).join('');
+  list.querySelectorAll('.tpl-pill').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ selectedTemplateId = btn.dataset.id; renderTemplateModal(); });
+  });
+  const editor = document.getElementById('tplEditor');
+  if(!tpl){ editor.innerHTML = '<div class="tpl-empty">템플릿이 없습니다.</div>'; return; }
+  const nameInput = document.getElementById('tplName');
+  nameInput.value = tpl.name || '';
+  const blocks = document.getElementById('tplBlocks');
+  const sorted = sortTemplateBlocks(tpl.blocks).map(b => tpl.blocks.indexOf(b));
+  blocks.innerHTML = sorted.map(idx => {
+    const b = tpl.blocks[idx];
+    return `<div class="tpl-block-row" data-idx="${idx}">`
+      + `<input type="time" class="tpl-start" value="${escapeHtml(b.start||'')}">`
+      + `<input type="time" class="tpl-end" value="${escapeHtml(b.end||'')}">`
+      + `<input type="text" class="tpl-title" value="${escapeHtml(b.title||'')}">`
+      + `<select class="tpl-tag">${templateTagOptions(b.tag || b.title || '기타')}</select>`
+      + `<button type="button" class="tpl-block-del" title="시간 블록 삭제">×</button>`
+      + `</div>`;
+  }).join('') || '<div class="tpl-empty">시간 블록이 없습니다. + 시간 블록을 눌러 추가하세요.</div>';
+  blocks.querySelectorAll('.tpl-block-row').forEach(row=>{
+    const idx = Number(row.dataset.idx);
+    const b = tpl.blocks[idx];
+    row.querySelector('.tpl-start').addEventListener('change', e=>{ b.start=e.target.value; saveTemplates(); renderTemplateModal(); });
+    row.querySelector('.tpl-end').addEventListener('change', e=>{ b.end=e.target.value; saveTemplates(); renderTemplateModal(); });
+    row.querySelector('.tpl-title').addEventListener('input', e=>{ b.title=e.target.value; saveTemplates(); });
+    row.querySelector('.tpl-tag').addEventListener('change', e=>{ b.tag=e.target.value; saveTemplates(); });
+    row.querySelector('.tpl-block-del').addEventListener('click', ()=>{
+      if(!confirm('이 시간 블록을 삭제할까요?')) return;
+      tpl.blocks.splice(idx, 1);
+      saveTemplates();
+      renderTemplateModal();
+    });
+  });
+}
+document.getElementById('tplName').addEventListener('input', e=>{
+  const tpl = currentTemplate();
+  if(!tpl) return;
+  tpl.name = e.target.value || '이름 없음';
+  saveTemplates();
+  const active = document.querySelector('#tplList .tpl-pill.active');
+  if(active) active.textContent = tpl.name;
+});
+document.getElementById('tplNew').addEventListener('click', ()=>{
+  const name = prompt('새 템플릿 이름을 입력하세요.', '새 템플릿');
+  if(!name) return;
+  const id = 'tpl-user-' + Date.now();
+  studyTemplates.push({ id, name:name.trim(), blocks:[{start:'08:00',end:'09:30',title:'수학',tag:'수학'}] });
+  selectedTemplateId = id;
+  saveTemplates();
+  renderTemplateModal();
+});
+document.getElementById('tplAddBlock').addEventListener('click', ()=>{
+  const tpl = currentTemplate();
+  if(!tpl) return;
+  tpl.blocks.push({start:'08:00',end:'09:30',title:'수학',tag:'수학'});
+  saveTemplates();
+  renderTemplateModal();
+});
+document.getElementById('tplDelete').addEventListener('click', ()=>{
+  const tpl = currentTemplate();
+  if(!tpl) return;
+  if(!confirm(`'${tpl.name}' 템플릿을 삭제할까요?\n이미 적용된 오늘 할일은 삭제되지 않습니다.`)) return;
+  studyTemplates = studyTemplates.filter(t => t.id !== tpl.id);
+  if(!studyTemplates.length) studyTemplates = cloneDefaultTemplates();
+  selectedTemplateId = studyTemplates[0].id;
+  saveTemplates();
+  renderTemplateModal();
+});
+async function applyCurrentTemplate(){
+  const tpl = currentTemplate();
+  if(!tpl || !tpl.blocks.length) return;
+  const date = AppState.selectedDate;
+  const valid = sortTemplateBlocks(tpl.blocks).filter(b => b.title && b.start && b.end);
+  if(!valid.length) return;
+  if(!confirm(`${date}에 '${tpl.name}' 템플릿 ${valid.length}개 블록을 추가할까요?\n기존 할일은 유지됩니다.`)) return;
+  closeTemplateModal();
+  for(const b of valid){ addSubjectTag(b.tag || b.title || '기타'); }
+  if(isTokenValid()){
+    setSyncStatus('템플릿 적용 중…');
+    for(const b of valid){
+      try{
+        const created = await gtaskInsert(b.title, date);
+        if(created && created.id){
+          todoMeta[created.id] = { start:b.start, end:b.end, tag:b.tag || b.title || '기타' };
+        }
+      }catch(err){
+        console.error(err);
+        const e = EventsStore.addTodo(date, b.title);
+        todoMeta[e.id] = { start:b.start, end:b.end, tag:b.tag || b.title || '기타' };
+      }
+    }
+    Storage.setTodoMeta(todoMeta);
+    scheduleNotesSave();
+    await syncTasks();
+    setSyncStatus('템플릿 적용 완료');
+  } else {
+    valid.forEach(b=>{
+      const e = EventsStore.addTodo(date, b.title);
+      todoMeta[e.id] = { start:b.start, end:b.end, tag:b.tag || b.title || '기타' };
+    });
+    Storage.setTodoMeta(todoMeta);
+    EventsStore.reattachTodoMeta();
+    renderCalendar();
+    renderPlannerPage(date);
+  }
+}
+document.getElementById('tplApply').addEventListener('click', applyCurrentTemplate);
+document.getElementById('tplClose').addEventListener('click', closeTemplateModal);
+templateBack.addEventListener('click', (e)=>{ if(e.target === templateBack) closeTemplateModal(); });
+document.getElementById('openTemplateLs').addEventListener('click', openTemplateModal);
+document.getElementById('fabTemplate').addEventListener('click', openTemplateModal);
+
 /* ---------- 구글 연동 동작 ---------- */
 function setSyncStatus(msg, isErr){
   const el = document.getElementById('gcalStatus');
@@ -2567,8 +2966,10 @@ function studyAggregate(range){
   const tagMin = {}; let total = 0;
   all.forEach(e=>{
     if(e.type==="todo" && e.done && e.startTime && e.endTime && e.date >= fromS && e.date <= toS){
+      const tg = e.tag || "기타";
+      if(tg === "휴식") return;
       const d = toMin(e.endTime) - toMin(e.startTime);
-      if(d>0){ const tg = e.tag || "기타"; tagMin[tg]=(tagMin[tg]||0)+d; total+=d; }
+      if(d>0){ tagMin[tg]=(tagMin[tg]||0)+d; total+=d; }
     }
   });
   return { tagMin, total, fromS, toS, label };
@@ -2612,6 +3013,7 @@ function renderStats(){
   todoMeta = Storage.getTodoMeta();       // 할일 시간·태그
   const savedTags = Storage.getSubjectTags();
   if(savedTags && savedTags.length) subjectTags = savedTags;
+  loadTemplates();
   EventsStore.reattachTodoMeta();
   const t = parseDate(todayStr());
   AppState.view = { year: t.getFullYear(), month: t.getMonth() };
