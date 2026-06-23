@@ -2121,7 +2121,11 @@ function openTimerModal(){
     openFocusMode();
     return;
   }
-  if(timerBack) timerBack.classList.add('open');
+  if(timerBack){
+    timerBack.classList.add('open');
+  } else {
+    alert('타이머 화면을 찾지 못했습니다. index.html과 app.js를 같은 버전으로 다시 업로드해주세요.');
+  }
 }
 function closeTimerModal(){
   if(timerBack) timerBack.classList.remove('open');
@@ -2273,6 +2277,18 @@ function bindFocusTimerUI(){
   document.getElementById('focusBackPlanner')?.addEventListener('click', closeFocusMode);
   setTimerSubject(selectedTimerSubject);
 }
+
+
+/* V2.8.1 타이머 버튼 작동 안정화
+   - app.js가 새로 로드된 경우 버튼 직접 바인딩 + 이벤트 위임을 같이 적용
+   - 일부 브라우저/PWA 캐시 상황에서 초기 바인딩이 누락되는 것을 방지 */
+document.addEventListener('click', function(e){
+  const target = e.target && e.target.closest ? e.target.closest('#openTimerLs') : null;
+  if(target){
+    e.preventDefault();
+    if(typeof openTimerModal === 'function') openTimerModal();
+  }
+}, true);
 
 /* 초기화 */
 (function init(){

@@ -1,12 +1,13 @@
 /* Study Planner 서비스워커 — 홈화면 설치 + 오프라인 캐시 */
-const CACHE = 'study-planner-v2-8-focus-timer';
+const CACHE = 'study-planner-v2-8-1-timer-activation-fix';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  './app.js'
+  './app.js',
+  './app.js?v=2.8.1'
 ];
 
 // 설치: 핵심 파일 캐시
