@@ -976,17 +976,36 @@ body{
 }
 
 
-/* V2.6 D-Day 일정명 가로 스크롤 실제 수정: 바깥 영역 스크롤 + 안쪽 텍스트 실제 폭 유지 */
+
+/* V2.7 D-Day 일정명 스크롤 영역 고정
+   - 기본 화면에서는 지정된 칸 안에서만 잘림
+   - 사용자가 제목 영역을 좌우로 스크롤하면 전체 일정명을 볼 수 있음
+   - 긴 제목이 일정 버튼/오른쪽 영역으로 삐져나가지 않음 */
 .field.dday .dday-main{
-  overflow:visible;
+  flex-wrap:nowrap;
+  min-width:0;
+  max-width:100%;
+  white-space:nowrap;
+  overflow:hidden;
+}
+.field.dday .dday-list li{
+  min-width:0;
+  max-width:100%;
+  flex-wrap:nowrap;
+  overflow:hidden;
+  align-items:center;
 }
 .field.dday .dday-title-scroll{
-  flex:1 1 auto;
+  display:block;
+  flex:1 1 0;
+  width:0;
   min-width:0;
+  max-width:100%;
   overflow-x:auto;
   overflow-y:hidden;
   white-space:nowrap;
   -webkit-overflow-scrolling:touch;
+  overscroll-behavior-x:contain;
   scrollbar-width:thin;
   scrollbar-color:var(--line) transparent;
   padding-bottom:1px;
@@ -1005,14 +1024,15 @@ body{
 .field.dday .up-title,
 .field.dday .dday-title{
   display:inline-block;
+  width:max-content;
   min-width:max-content;
-  padding-right:8px;
+  max-width:none;
+  padding-right:10px;
   white-space:nowrap;
   word-break:keep-all;
   text-overflow:clip;
-}
-.field.dday .dday-list li{
-  align-items:center;
+  overflow:visible;
+  vertical-align:top;
 }
 
 /* ============================================================
