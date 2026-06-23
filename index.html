@@ -658,25 +658,45 @@ body{
 .postit .pin .colors{display:flex; gap:6px; flex:0 0 auto;}
 .postit .pin .cdot{width:16px;height:16px;border-radius:50%;cursor:pointer;border:1px solid rgba(0,0,0,.12);}
 .postit .pin .cdot:active{transform:scale(.88);}
+.postit .pin .del{
+  margin-left:auto;
+  cursor:pointer;color:rgba(0,0,0,.42);font-size:18px;line-height:1;padding:0 2px;
+}
 .postit .size-controls{
-  display:flex; gap:3px; margin-left:auto; align-items:center;
+  position:absolute;
+  right:8px;
+  bottom:7px;
+  display:flex;
+  gap:3px;
+  align-items:center;
+  padding:2px;
+  border-radius:999px;
+  background:rgba(255,255,255,.20);
+  border:1px solid rgba(0,0,0,.10);
+  opacity:.42;
+  transition:opacity .15s ease, background .15s ease;
+  z-index:3;
+}
+.postit:hover .size-controls,
+.postit:focus-within .size-controls{
+  opacity:.9;
 }
 .postit .size-btn{
-  width:24px;height:22px;border-radius:7px;
-  border:1px solid rgba(0,0,0,.16);
-  background:rgba(255,255,255,.32);
-  color:rgba(0,0,0,.48);
+  width:24px;height:22px;border-radius:999px;
+  border:none;
+  background:rgba(255,255,255,.26);
+  color:rgba(0,0,0,.52);
   font-family:var(--font-label);
   font-size:14px;line-height:1;
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;touch-action:manipulation;
 }
 .postit .size-btn:active{transform:translateY(1px);background:rgba(255,255,255,.48);}
-.postit .pin .del{cursor:pointer;color:rgba(0,0,0,.42);font-size:18px;line-height:1;padding:0 2px;}
 .postit textarea{
   flex:1; border:none; background:transparent; resize:none; outline:none;
   font-family:var(--font-ko); font-size:12.5px; color:#3a382f; line-height:1.45;
   border-radius:6px;
+  padding-bottom:24px;
 }
 /* 공부시간 통계 */
 .st-head{
@@ -1195,10 +1215,19 @@ body[data-theme="deep"] .postit .grip{
 body[data-theme="deep"] .postit .grip:active{
   background:rgba(0,0,0,.10);
 }
+body[data-theme="deep"] .postit .size-controls{
+  background:rgba(255,255,255,.15);
+  border-color:rgba(0,0,0,.10);
+  opacity:.38;
+}
+body[data-theme="deep"] .postit:hover .size-controls,
+body[data-theme="deep"] .postit:focus-within .size-controls{
+  opacity:.85;
+}
 body[data-theme="deep"] .postit .size-btn{
-  background:rgba(255,255,255,.28);
-  color:rgba(0,0,0,.50);
-  border-color:rgba(0,0,0,.16);
+  background:rgba(255,255,255,.20);
+  color:rgba(0,0,0,.52);
+  border-color:transparent;
 }
 body[data-theme="deep"] .postit .pin .del{
   color:rgba(0,0,0,.46);
@@ -2173,7 +2202,7 @@ body.focus-lock{overflow:hidden;}
 </div>
 
 
-<script src="app.js?v=2.8.4"></script>
+<script src="app.js?v=2.8.5"></script>
 
 </body>
 </html>

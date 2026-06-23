@@ -2011,6 +2011,14 @@ function renderPostits(){
       d.addEventListener('click', (e)=>{ e.stopPropagation(); p.color = c; card.style.background = c; savePostits(); });
       colors.appendChild(d);
     });
+    const del = document.createElement('span'); del.className = 'del'; del.textContent = '×';
+    ['mousedown','touchstart'].forEach(ev => del.addEventListener(ev, x=>x.stopPropagation()));
+    del.addEventListener('click', (e)=>{ e.stopPropagation(); postits = postits.filter(x=>x.id!==p.id); savePostits(); renderPostits(); });
+    pin.appendChild(colors); pin.appendChild(del);
+
+    const ta = document.createElement('textarea'); ta.value = p.text||''; ta.placeholder = '메모...';
+    ta.addEventListener('input', ()=>{ p.text = ta.value; savePostits(); });
+
     const sizeControls = document.createElement('div'); sizeControls.className = 'size-controls';
     const shrink = document.createElement('button'); shrink.type = 'button'; shrink.className = 'size-btn'; shrink.textContent = '−'; shrink.title = '포스트잇 축소';
     const grow = document.createElement('button'); grow.type = 'button'; grow.className = 'size-btn'; grow.textContent = '+'; grow.title = '포스트잇 확대';
@@ -2019,15 +2027,7 @@ function renderPostits(){
     grow.addEventListener('click', (e)=>{ e.stopPropagation(); changePostitSize(p, 1, card, area); });
     sizeControls.appendChild(shrink); sizeControls.appendChild(grow);
 
-    const del = document.createElement('span'); del.className = 'del'; del.textContent = '×';
-    ['mousedown','touchstart'].forEach(ev => del.addEventListener(ev, x=>x.stopPropagation()));
-    del.addEventListener('click', (e)=>{ e.stopPropagation(); postits = postits.filter(x=>x.id!==p.id); savePostits(); renderPostits(); });
-    pin.appendChild(colors); pin.appendChild(sizeControls); pin.appendChild(del);
-
-    const ta = document.createElement('textarea'); ta.value = p.text||''; ta.placeholder = '메모...';
-    ta.addEventListener('input', ()=>{ p.text = ta.value; savePostits(); });
-
-    card.appendChild(grip); card.appendChild(pin); card.appendChild(ta);
+    card.appendChild(grip); card.appendChild(pin); card.appendChild(ta); card.appendChild(sizeControls);
     grip.addEventListener('mousedown', (e)=> startPDrag(e, card, p, area));
     grip.addEventListener('touchstart', (e)=> startPDrag(e, card, p, area), {passive:false});
     area.appendChild(card);
