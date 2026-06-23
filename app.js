@@ -140,7 +140,7 @@ const DEFAULT_TEMPLATES = [
   { id:'tpl-standard', name:'표준형', blocks:[
     {start:'08:00',end:'09:30',title:'수학',tag:'수학'},
     {start:'09:40',end:'11:10',title:'물리',tag:'물리'},
-    {start:'11:20',end:'12:00',title:'수학/물리',tag:'수학/물리'},
+    {start:'11:20',end:'12:00',title:'종합',tag:'종합'},
     {start:'12:00',end:'12:40',title:'점심/휴식',tag:'휴식'},
     {start:'12:40',end:'14:10',title:'화학',tag:'화학'},
     {start:'14:20',end:'15:50',title:'수학',tag:'수학'},
@@ -157,7 +157,7 @@ const DEFAULT_TEMPLATES = [
     {start:'12:00',end:'12:40',title:'점심/휴식',tag:'휴식'},
     {start:'12:40',end:'14:10',title:'수학',tag:'수학'},
     {start:'14:20',end:'15:50',title:'물리',tag:'물리'},
-    {start:'16:00',end:'17:00',title:'수학/물리',tag:'수학/물리'},
+    {start:'16:00',end:'17:00',title:'종합',tag:'종합'},
     {start:'17:00',end:'18:40',title:'저녁/휴식',tag:'휴식'},
     {start:'18:40',end:'20:10',title:'수학',tag:'수학'},
     {start:'20:20',end:'21:50',title:'물리',tag:'물리'},
@@ -209,7 +209,7 @@ const DEFAULT_TEMPLATES = [
     {start:'13:00',end:'17:00',title:'현강',tag:'현강'},
     {start:'17:00',end:'17:30',title:'이동/휴식',tag:'휴식'},
     {start:'17:30',end:'19:00',title:'화학',tag:'화학'},
-    {start:'19:10',end:'20:30',title:'수학/물리',tag:'수학/물리'}
+    {start:'19:10',end:'20:30',title:'종합',tag:'종합'}
   ]},
   { id:'tpl-live-08-17', name:'현강 08-17', blocks:[
     {start:'08:00',end:'17:00',title:'현강',tag:'현강'},
@@ -227,8 +227,9 @@ function loadTemplates(){
   const saved = Storage.getTemplates && Storage.getTemplates();
   studyTemplates = Array.isArray(saved) && saved.length ? saved : cloneDefaultTemplates();
   studyTemplates.forEach(t => { if(!Array.isArray(t.blocks)) t.blocks = []; });
+  const migrated = normalizeTemplateLabels();
   selectedTemplateId = studyTemplates[0] ? studyTemplates[0].id : null;
-  if(!saved || !saved.length) saveTemplates(false);
+  if((!saved || !saved.length) || migrated) saveTemplates(false);
 }
 function saveTemplates(sync){
   if(Storage.setTemplates) Storage.setTemplates(studyTemplates);
@@ -237,12 +238,31 @@ function saveTemplates(sync){
 function currentTemplate(){
   return studyTemplates.find(t => t.id === selectedTemplateId) || studyTemplates[0] || null;
 }
+function normalizeTemplateLabels(){
+  let changed = false;
+  const comboLabels = new Set(['수학/물리','수물','물리/수학','수학+물리']);
+  studyTemplates.forEach(t => {
+    (t.blocks || []).forEach(b => {
+      if(comboLabels.has((b.title || '').trim())){ b.title = '종합'; changed = true; }
+      if(comboLabels.has((b.tag || '').trim())){ b.tag = '종합'; changed = true; }
+    });
+  });
+  return changed;
+}
+function isNonStudyBlock(e){
+  const tg = (e && (e.tag || '')) || '';
+  const title = (e && (e.title || '')) || '';
+  return tg === '휴식' || tg === '정리'
+    || title === '점심/휴식' || title === '저녁/휴식'
+    || title === '이동/휴식/식사' || title === '이동/휴식'
+    || title === '정리';
+}
 function escapeHtml(s){
   return String(s == null ? '' : s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 }
 function templateTagOptions(selected){
   const set = new Set(subjectTags.map(t => t.name));
-  ['수학','물리','화학','현강','종합','정리','휴식','수학/물리','기타'].forEach(x => set.add(x));
+  ['수학','물리','화학','현강','종합','정리','휴식','기타'].forEach(x => set.add(x));
   return Array.from(set).map(name => `<option value="${escapeHtml(name)}" ${name===selected?'selected':''}>${escapeHtml(name)}</option>`).join('');
 }
 
@@ -943,7 +963,7 @@ function renderPlannerPage(date){
   events.forEach(e => {
     if(e.type==='todo' && e.startTime && e.endTime){
       const tg = e.tag || '기타';
-      if(tg === '휴식') return;
+      if(isNonStudyBlock(e)) return;
       const d = toMin(e.endTime) - toMin(e.startTime);
       if(d > 0){ tagMin[tg] = (tagMin[tg]||0) + d; todoMin += d; if(e.done) doneMin += d; }
     }
@@ -1502,7 +1522,7 @@ function renderTemplateModal(){
   const tpl = currentTemplate();
   list.innerHTML = studyTemplates.map(t => {
     const counts = {};
-    (t.blocks||[]).forEach(b => { const k=b.tag||b.title||'기타'; if(k!=='휴식') counts[k]=(counts[k]||0)+1; });
+    (t.blocks||[]).forEach(b => { const k=b.tag||b.title||'기타'; if(!isNonStudyBlock(b)) counts[k]=(counts[k]||0)+1; });
     const summary = Object.keys(counts).slice(0,3).map(k=>`${k} ${counts[k]}`).join(' · ') || '시간 블록 없음';
     return `<button class="tpl-pill ${t.id===selectedTemplateId?'active':''}" data-id="${escapeHtml(t.id)}">${escapeHtml(t.name)}<small>${escapeHtml(summary)}</small></button>`;
   }).join('');
@@ -1985,7 +2005,7 @@ function studyAggregate(range){
   all.forEach(e=>{
     if(e.type==="todo" && e.done && e.startTime && e.endTime && e.date >= fromS && e.date <= toS){
       const tg = e.tag || "기타";
-      if(tg === "휴식") return;
+      if(isNonStudyBlock(e)) return;
       const d = toMin(e.endTime) - toMin(e.startTime);
       if(d>0){ tagMin[tg]=(tagMin[tg]||0)+d; total+=d; }
     }
