@@ -2348,6 +2348,57 @@ body.focus-lock{overflow:hidden;}
   margin-top:6px;font-size:11px;color:var(--text-sub);text-align:center;min-height:14px;
 }
 .gcal-status.err{color:#C18A8A;}
+
+/* ============================================================
+   V2.8.8 주간계획 팝업 폭/요약 줄바꿈 보정
+   - 기본 .modal max-width:360px 규칙이 weekly 팝업을 좁게 만드는 문제 보정
+   - 아이패드/넓은 화면에서는 요약 카드가 3열로 충분히 넓게 보이도록 함
+   - 영역명은 한 줄 유지 + 넘치면 말줄임
+   ============================================================ */
+.modal.weekly-modal{
+  width:min(920px, calc(100vw - 34px));
+  max-width:920px;
+}
+.modal.weekly-edit-modal{
+  max-width:620px;
+}
+.modal.weekly-modal .weekly-summary-grid{
+  grid-template-columns:repeat(3, minmax(0,1fr));
+}
+.modal.weekly-modal .wsc-row{
+  align-items:center;
+}
+.modal.weekly-modal .wsc-row span{
+  display:block;
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  line-height:1.35;
+}
+@media (max-width:720px){
+  .modal.weekly-modal{
+    width:calc(100vw - 16px);
+    max-width:none;
+    height:calc(100vh - 20px);
+    max-height:none;
+    border-radius:16px;
+  }
+  .modal.weekly-modal .weekly-summary-grid{
+    grid-template-columns:1fr;
+  }
+  .modal.weekly-modal .wsc-row span{
+    white-space:normal;
+    overflow:visible;
+    text-overflow:clip;
+  }
+  .modal.weekly-edit-modal{
+    width:calc(100vw - 18px);
+    max-width:none;
+    max-height:88vh;
+  }
+}
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -2812,7 +2863,7 @@ body.focus-lock{overflow:hidden;}
 </div>
 
 
-<script src="app.js?v=2.8.7"></script>
+<script src="app.js?v=2.8.8"></script>
 
 </body>
 </html>
