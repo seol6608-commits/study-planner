@@ -934,6 +934,51 @@ body{
   .dday-manage-modal{max-width:none;}
 }
 
+
+/* V2.4 D-Day 줄바꿈 방지: D-1 / D-DAY 숫자 영역 고정 */
+.field.dday .dday-main{
+  flex-wrap:nowrap;
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+}
+.field.dday .dday-tag{
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:baseline;
+  justify-content:flex-start;
+  min-width:44px;
+  white-space:nowrap;
+  word-break:keep-all;
+  overflow:visible;
+}
+.field.dday .dday-title{
+  flex:1 1 auto;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  word-break:keep-all;
+}
+.field.dday .dday-list .dl-tag{
+  flex:0 0 38px;
+  white-space:nowrap;
+  word-break:keep-all;
+}
+.field.dday .dday-list li{
+  min-width:0;
+  flex-wrap:nowrap;
+}
+.field.dday .dday-list li span:last-child{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+@media (max-width:600px){
+  .field.dday .dday-tag{min-width:36px;font-size:13px;}
+}
+
 /* ============================================================
    템플릿 선택/관리
    ============================================================ */

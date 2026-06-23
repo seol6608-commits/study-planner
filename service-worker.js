@@ -1,5 +1,5 @@
 /* Study Planner 서비스워커 — 홈화면 설치 + 오프라인 캐시 */
-const CACHE = 'study-planner-v2-3-subject-clean';
+const CACHE = 'study-planner-v2-4-dday-wrap-fix';
 const ASSETS = [
   './',
   './index.html',
