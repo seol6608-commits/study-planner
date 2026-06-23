@@ -838,8 +838,9 @@ body{
    ============================================================ */
 .theme-float-btn{
   position:fixed;
-  top:calc(env(safe-area-inset-top, 0px) + 12px);
-  right:calc(env(safe-area-inset-right, 0px) + 14px);
+  top:auto;
+  bottom:calc(env(safe-area-inset-bottom, 0px) + 18px);
+  right:calc(env(safe-area-inset-right, 0px) + 18px);
   z-index:96;
   min-width:72px;
   height:44px;
@@ -1000,8 +1001,159 @@ body[data-theme="deep"] .cal-day.muted{
     padding:0 10px;
     font-size:12px;
     top:calc(env(safe-area-inset-top, 0px) + 8px);
+    bottom:auto;
     right:calc(env(safe-area-inset-right, 0px) + 8px);
   }
+}
+
+
+/* ============================================================
+   V2.8.3 Deep Bluegray 보정
+   - 딥 테마에서 흰 버튼/시간칩이 튀는 문제 수정
+   - 색상 버튼이 Study Time 주간/월간 배지를 가리지 않도록 우하단 배치
+   ============================================================ */
+body[data-theme="deep"]{
+  --blue-main:#7EA5C4;
+  --blue-deep:#B8D0E3;
+  --blue-bg:#243746;
+  --line:#3E5668;
+  --line-soft:#304657;
+  --text:#E7F0F6;
+  --text-sub:#9FB2C2;
+  --paper:#1F303D;
+  --page:#172632;
+  --bg-glow-1:#243B4D;
+  --bg-glow-2:#13212B;
+}
+body[data-theme="deep"] .sidebar,
+body[data-theme="deep"] .paper,
+body[data-theme="deep"] .calendar,
+body[data-theme="deep"] .exam-box,
+body[data-theme="deep"] .cal-memo,
+body[data-theme="deep"] .modal,
+body[data-theme="deep"] #statsArea,
+body[data-theme="deep"] #postitArea{
+  background:rgba(31,48,61,.88);
+  border-color:var(--line);
+}
+body[data-theme="deep"] .field,
+body[data-theme="deep"] .task-line,
+body[data-theme="deep"] .type-menu,
+body[data-theme="deep"] .theme-option{
+  background:rgba(255,255,255,.045);
+  border-color:var(--line);
+}
+body[data-theme="deep"] .bar.top{
+  background:#6F9ABC;
+}
+body[data-theme="deep"] .gcal-btn,
+body[data-theme="deep"] .gcal-refresh,
+body[data-theme="deep"] .cal-nav,
+body[data-theme="deep"] .add-btn,
+body[data-theme="deep"] .memo-edit,
+body[data-theme="deep"] .exam-head button,
+body[data-theme="deep"] .st-toggle button,
+body[data-theme="deep"] .timer-subject-chip,
+body[data-theme="deep"] .timer-goal-row label,
+body[data-theme="deep"] .theme-option,
+body[data-theme="deep"] .type-opt,
+body[data-theme="deep"] .btn-cancel,
+body[data-theme="deep"] .fab-bar button{
+  background:rgba(255,255,255,.075);
+  color:var(--text);
+  border-color:var(--line);
+  box-shadow:none;
+}
+body[data-theme="deep"] .gcal-btn:hover,
+body[data-theme="deep"] .gcal-refresh:hover,
+body[data-theme="deep"] .cal-nav:hover,
+body[data-theme="deep"] .add-btn:hover,
+body[data-theme="deep"] .memo-edit:hover,
+body[data-theme="deep"] .exam-head button:hover,
+body[data-theme="deep"] .st-toggle button:hover,
+body[data-theme="deep"] .timer-subject-chip:hover,
+body[data-theme="deep"] .theme-option:hover,
+body[data-theme="deep"] .btn-cancel:hover{
+  background:rgba(126,165,196,.16);
+  border-color:rgba(126,165,196,.55);
+  color:var(--text);
+}
+body[data-theme="deep"] .st-toggle button.active,
+body[data-theme="deep"] .timer-subject-chip.active,
+body[data-theme="deep"] .theme-option.active,
+body[data-theme="deep"] .btn-save,
+body[data-theme="deep"] .fab-bar .fab-event{
+  background:var(--blue-main);
+  color:#13212B;
+  border-color:var(--blue-main);
+}
+body[data-theme="deep"] .add-btn.ghost{
+  color:var(--text-sub);
+}
+body[data-theme="deep"] .add-btn.ghost:hover{
+  color:var(--text);
+}
+body[data-theme="deep"] .task-line .t-time{
+  background:rgba(126,165,196,.12);
+  color:#C4D6E3;
+  border:1px solid rgba(126,165,196,.20);
+  border-radius:7px;
+  padding:1px 5px;
+  margin-left:6px;
+}
+body[data-theme="deep"] .task-line.done .t-time{
+  color:#7D93A4;
+  background:rgba(255,255,255,.045);
+  border-color:rgba(255,255,255,.06);
+}
+body[data-theme="deep"] .chk{
+  background:rgba(255,255,255,.06);
+  border-color:#5A7386;
+}
+body[data-theme="deep"] .chk.checked{
+  background:var(--blue-main);
+  border-color:var(--blue-main);
+}
+body[data-theme="deep"] .chk.checked::after{
+  border-color:#13212B;
+}
+body[data-theme="deep"] input,
+body[data-theme="deep"] select,
+body[data-theme="deep"] textarea{
+  background:#253846;
+  color:var(--text);
+  border-color:var(--line);
+}
+body[data-theme="deep"] input::placeholder,
+body[data-theme="deep"] .quick-input::placeholder,
+body[data-theme="deep"] .memo-view:empty::before{
+  color:#7F95A6;
+}
+body[data-theme="deep"] .memo-view,
+body[data-theme="deep"] .cal-memo .memo-view{
+  background:repeating-linear-gradient(transparent,transparent 27px,var(--line-soft) 27px,var(--line-soft) 28px);
+}
+body[data-theme="deep"] .study-bar,
+body[data-theme="deep"] .st-bar-track{
+  background:rgba(255,255,255,.10);
+}
+body[data-theme="deep"] .total-bytag .ts-tag,
+body[data-theme="deep"] .st-bar-top,
+body[data-theme="deep"] .gcal-status,
+body[data-theme="deep"] .legend,
+body[data-theme="deep"] .del-hint{
+  color:var(--text-sub);
+}
+body[data-theme="deep"] .tt-row,
+body[data-theme="deep"] .tt-grid,
+body[data-theme="deep"] .tt-cells{
+  border-color:var(--line-soft);
+}
+body[data-theme="deep"] .theme-float-btn{
+  background:rgba(31,48,61,.86);
+  color:var(--text);
+  border-color:rgba(126,165,196,.48);
+  box-shadow:0 12px 28px -18px rgba(0,0,0,.80);
 }
 
 /* ============================================================
@@ -1970,7 +2122,7 @@ body.focus-lock{overflow:hidden;}
 </div>
 
 
-<script src="app.js?v=2.8.2"></script>
+<script src="app.js?v=2.8.3"></script>
 
 </body>
 </html>
