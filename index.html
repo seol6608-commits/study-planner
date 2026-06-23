@@ -824,6 +824,444 @@ body[data-theme="deep"] .tl-del:hover{
   color:var(--text);
 }
 
+
+/* ============================================================
+   V2.8.7 주간 계획
+   ============================================================ */
+.weekly-box{
+  margin-top:12px;
+  background:linear-gradient(135deg, rgba(255,255,255,.96), rgba(238,246,250,.72));
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px 12px 10px;
+  box-shadow:0 1px 0 rgba(94,135,168,.04);
+}
+.weekly-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:8px;
+}
+.weekly-head span{
+  font-family:var(--font-label);
+  font-size:11px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--blue-deep);
+}
+.weekly-head button{
+  width:26px;height:24px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:#fff;
+  color:var(--blue-main);
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:13px;
+}
+.weekly-current{
+  font-size:12px;
+  color:var(--text);
+  line-height:1.45;
+}
+.weekly-week-title{
+  font-size:12px;
+  color:var(--blue-deep);
+  margin-bottom:5px;
+  font-weight:600;
+}
+.weekly-line{
+  display:flex;
+  align-items:flex-start;
+  gap:6px;
+  margin:3px 0;
+  color:var(--text-sub);
+}
+.weekly-line b{
+  flex:0 0 auto;
+  min-width:34px;
+  color:var(--text);
+  font-weight:500;
+}
+.weekly-line span{
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.weekly-empty{
+  color:#B6C5D0;
+  font-size:11.5px;
+  line-height:1.5;
+  padding:3px 0;
+}
+.weekly-back.open,
+.weekly-edit-back.open{display:flex;}
+.weekly-modal{
+  width:min(920px, calc(100vw - 34px));
+  max-width:920px;
+  height:min(86vh, 760px);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 0 0, rgba(94,135,168,.13), transparent 34%),
+    radial-gradient(circle at 100% 0, rgba(197,143,110,.12), transparent 34%),
+    var(--paper);
+}
+.weekly-modal-head{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:18px 20px 14px;
+  border-bottom:1px solid var(--line-soft);
+}
+.wm-label{
+  font-family:var(--font-label);
+  font-size:11px;
+  letter-spacing:.22em;
+  color:var(--text-sub);
+  text-transform:uppercase;
+}
+.wm-title{
+  margin-top:2px;
+  font-family:var(--font-ko);
+  font-size:18px;
+  color:var(--text);
+}
+.wm-close{
+  width:34px;height:34px;border-radius:12px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.78);
+  color:var(--text-sub);
+  cursor:pointer;
+  font-size:20px;
+  line-height:1;
+}
+.weekly-modal-body{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  padding:16px 18px 20px;
+}
+.weekly-summary-toggle{
+  display:none;
+  width:100%;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.72);
+  color:var(--blue-deep);
+  border-radius:12px;
+  padding:10px 0;
+  font-family:var(--font-ko);
+  font-size:13px;
+  margin-bottom:10px;
+}
+.weekly-summary-grid{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0,1fr));
+  gap:10px;
+  margin-bottom:14px;
+}
+.weekly-summary-card{
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:rgba(255,255,255,.68);
+  padding:12px 12px 11px;
+  position:relative;
+  overflow:hidden;
+}
+.weekly-summary-card::before{
+  content:"";
+  position:absolute;
+  inset:0 auto 0 0;
+  width:5px;
+  background:var(--weekly-accent, var(--blue-main));
+  opacity:.78;
+}
+.weekly-summary-card.math{--weekly-accent:#5E87A8;background:linear-gradient(135deg, rgba(94,135,168,.12), rgba(255,255,255,.72));}
+.weekly-summary-card.physics{--weekly-accent:#6FA08B;background:linear-gradient(135deg, rgba(111,160,139,.13), rgba(255,255,255,.72));}
+.weekly-summary-card.chemistry{--weekly-accent:#C58F6E;background:linear-gradient(135deg, rgba(197,143,110,.14), rgba(255,255,255,.72));}
+.wsc-title{
+  font-family:var(--font-label);
+  font-size:11px;
+  letter-spacing:.15em;
+  color:var(--text);
+  text-transform:uppercase;
+  margin-bottom:8px;
+}
+.wsc-row{
+  display:flex;
+  gap:7px;
+  align-items:flex-start;
+  font-size:12px;
+  color:var(--text-sub);
+  margin-top:5px;
+}
+.wsc-row b{
+  flex:0 0 auto;
+  color:var(--blue-deep);
+  font-weight:500;
+}
+.wsc-row span{
+  min-width:0;
+  line-height:1.35;
+}
+.weekly-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:4px 0 12px;
+}
+.weekly-month-tabs{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+}
+.weekly-month-tabs button{
+  font-family:var(--font-ko);
+  font-size:13px;
+  padding:7px 14px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.72);
+  color:var(--text-sub);
+  cursor:pointer;
+}
+.weekly-month-tabs button.active{
+  background:var(--blue-main);
+  color:#fff;
+  border-color:var(--blue-main);
+}
+.weekly-add-btn{
+  flex:0 0 auto;
+  border:1px solid var(--blue-main);
+  background:var(--blue-main);
+  color:#fff;
+  border-radius:999px;
+  padding:8px 14px;
+  font-family:var(--font-ko);
+  font-size:13px;
+  cursor:pointer;
+}
+.weekly-plan-list{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0,1fr));
+  gap:10px;
+}
+.weekly-plan-card{
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:rgba(255,255,255,.72);
+  padding:12px 13px;
+  box-shadow:0 1px 0 rgba(94,135,168,.035);
+}
+.wpc-head{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:center;
+  margin-bottom:8px;
+}
+.wpc-title{
+  color:var(--blue-deep);
+  font-weight:600;
+  font-size:13px;
+}
+.wpc-actions{
+  display:flex;
+  gap:5px;
+}
+.wpc-actions button{
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.75);
+  color:var(--text-sub);
+  border-radius:999px;
+  padding:3px 8px;
+  font-size:11.5px;
+  font-family:var(--font-ko);
+  cursor:pointer;
+}
+.wpc-actions .delete:hover{
+  color:#C18A8A;
+  border-color:rgba(193,138,138,.45);
+}
+.wpc-row{
+  display:flex;
+  align-items:flex-start;
+  gap:7px;
+  margin:5px 0;
+  font-size:12.5px;
+  line-height:1.35;
+}
+.wpc-row b{
+  flex:0 0 auto;
+  min-width:34px;
+  font-weight:500;
+}
+.wpc-row.math b{color:#5E87A8;}
+.wpc-row.physics b{color:#6FA08B;}
+.wpc-row.chemistry b{color:#C58F6E;}
+.wpc-row span{color:var(--text-sub);}
+.weekly-list-empty{
+  grid-column:1/-1;
+  text-align:center;
+  color:var(--text-sub);
+  padding:36px 0;
+  font-size:13px;
+}
+.weekly-edit-modal{
+  max-width:620px;
+  display:flex;
+  flex-direction:column;
+  max-height:86vh;
+}
+.weekly-edit-body{
+  overflow-y:auto;
+}
+.weekly-chip-section{
+  border:1px solid var(--line-soft);
+  border-radius:14px;
+  padding:11px 12px;
+  margin-top:10px;
+  background:rgba(255,255,255,.52);
+}
+.weekly-chip-section.subject-math{background:linear-gradient(135deg, rgba(94,135,168,.10), rgba(255,255,255,.62));}
+.weekly-chip-section.subject-physics{background:linear-gradient(135deg, rgba(111,160,139,.11), rgba(255,255,255,.62));}
+.weekly-chip-section.subject-chemistry{background:linear-gradient(135deg, rgba(197,143,110,.12), rgba(255,255,255,.62));}
+.weekly-chip-title{
+  font-family:var(--font-label);
+  font-size:11px;
+  letter-spacing:.15em;
+  color:var(--text);
+  text-transform:uppercase;
+  margin-bottom:8px;
+}
+.weekly-chip-grid{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.weekly-chip{
+  border:1px solid var(--line);
+  border-radius:999px;
+  background:rgba(255,255,255,.75);
+  color:var(--text-sub);
+  font-family:var(--font-ko);
+  font-size:12.5px;
+  padding:7px 10px;
+  cursor:pointer;
+}
+.weekly-chip.active{
+  background:var(--blue-main);
+  color:#fff;
+  border-color:var(--blue-main);
+}
+body[data-theme="deep"] .weekly-box,
+body[data-theme="deep"] .weekly-modal,
+body[data-theme="deep"] .weekly-plan-card,
+body[data-theme="deep"] .weekly-summary-card,
+body[data-theme="deep"] .weekly-chip-section{
+  background:rgba(31,48,61,.88);
+  border-color:var(--line);
+}
+body[data-theme="deep"] .weekly-box{
+  background:linear-gradient(135deg, rgba(31,48,61,.94), rgba(36,55,70,.72));
+}
+body[data-theme="deep"] .weekly-modal{
+  background:
+    radial-gradient(circle at 0 0, rgba(126,165,196,.16), transparent 35%),
+    radial-gradient(circle at 100% 0, rgba(197,143,110,.12), transparent 34%),
+    var(--paper);
+}
+body[data-theme="deep"] .weekly-head button,
+body[data-theme="deep"] .wm-close,
+body[data-theme="deep"] .weekly-summary-toggle,
+body[data-theme="deep"] .weekly-month-tabs button,
+body[data-theme="deep"] .wpc-actions button,
+body[data-theme="deep"] .weekly-chip{
+  background:rgba(255,255,255,.075);
+  color:var(--text);
+  border-color:var(--line);
+}
+body[data-theme="deep"] .weekly-month-tabs button.active,
+body[data-theme="deep"] .weekly-chip.active,
+body[data-theme="deep"] .weekly-add-btn{
+  background:var(--blue-main);
+  color:#14232E;
+  border-color:var(--blue-main);
+}
+body[data-theme="deep"] .weekly-summary-card.math{background:linear-gradient(135deg, rgba(126,165,196,.16), rgba(255,255,255,.04));}
+body[data-theme="deep"] .weekly-summary-card.physics{background:linear-gradient(135deg, rgba(111,160,139,.15), rgba(255,255,255,.04));}
+body[data-theme="deep"] .weekly-summary-card.chemistry{background:linear-gradient(135deg, rgba(197,143,110,.14), rgba(255,255,255,.04));}
+@media (max-width:720px){
+  .weekly-modal{
+    width:calc(100vw - 16px);
+    height:calc(100vh - 20px);
+    max-height:none;
+    border-radius:16px;
+  }
+  .weekly-modal-head{padding:14px 14px 11px;}
+  .wm-title{font-size:16px;}
+  .weekly-modal-body{padding:12px 12px 16px;}
+  .weekly-summary-toggle{display:block;}
+  .weekly-summary-grid{
+    grid-template-columns:1fr;
+    display:none;
+  }
+  .weekly-summary-grid.open{display:grid;}
+  .weekly-toolbar{
+    align-items:stretch;
+    flex-direction:column;
+    gap:8px;
+  }
+  .weekly-month-tabs{
+    overflow-x:auto;
+    flex-wrap:nowrap;
+    padding-bottom:2px;
+  }
+  .weekly-month-tabs button{
+    flex:0 0 auto;
+  }
+  .weekly-add-btn{
+    width:100%;
+  }
+  .weekly-plan-list{
+    grid-template-columns:1fr;
+  }
+  .wpc-head{
+    align-items:flex-start;
+  }
+  .wpc-actions button{
+    padding:4px 9px;
+  }
+  .weekly-edit-modal{
+    width:calc(100vw - 18px);
+    max-height:88vh;
+  }
+}
+@media (max-width:600px){
+  .weekly-box{
+    flex:0 0 100%;
+    order:3;
+    margin-top:6px;
+    padding:7px 9px;
+    border-radius:11px;
+  }
+  .weekly-head{margin-bottom:4px;}
+  .weekly-head span{font-size:10px;letter-spacing:.14em;}
+  .weekly-head button{width:24px;height:22px;font-size:12px;}
+  .weekly-current{font-size:11.2px;line-height:1.35;}
+  .weekly-week-title{font-size:11.5px;margin-bottom:2px;}
+  .weekly-line{margin:1px 0;}
+  .weekly-line b{min-width:30px;}
+  .weekly-line span{font-size:11.2px;}
+  .exam-box{display:none;}
+}
+
 /* ============================================================
    STACKED  (태블릿 세로·분할뷰 등 980px 이하) — 위아래 배치 + FAB
    ============================================================ */
@@ -1109,6 +1547,7 @@ body[data-theme="deep"] .sidebar,
 body[data-theme="deep"] .paper,
 body[data-theme="deep"] .calendar,
 body[data-theme="deep"] .exam-box,
+body[data-theme="deep"] .weekly-box,
 body[data-theme="deep"] .cal-memo,
 body[data-theme="deep"] .modal,
 body[data-theme="deep"] #statsArea,
@@ -1172,6 +1611,7 @@ body[data-theme="deep"] .sidebar,
 body[data-theme="deep"] .paper,
 body[data-theme="deep"] .calendar,
 body[data-theme="deep"] .exam-box,
+body[data-theme="deep"] .weekly-box,
 body[data-theme="deep"] .cal-memo,
 body[data-theme="deep"] .modal,
 body[data-theme="deep"] #statsArea,
@@ -1626,7 +2066,7 @@ body.focus-lock{overflow:hidden;}
 .exam-head span{font-family:var(--font-label);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--blue-deep);}
 .exam-head button{font-family:var(--font-ko);font-size:11px;color:var(--blue-main);background:#fff;border:1px solid var(--line);border-radius:999px;padding:2px 9px;cursor:pointer;}
 .exam-head button:hover{background:var(--blue-bg);border-color:var(--blue-main);}
-.exam-list{display:flex;flex-direction:column;gap:5px;max-height:104px;overflow-y:auto;}
+.exam-list{display:flex;flex-direction:column;gap:5px;max-height:214px;overflow-y:auto;}
 .exam-item{display:grid;grid-template-columns:minmax(0,1fr) auto auto 20px;gap:6px;align-items:center;font-size:11.5px;color:var(--text-sub);padding:5px 2px;border-bottom:1px solid var(--line-soft);}
 .exam-item:last-child{border-bottom:none;}
 .exam-subject{font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -1948,6 +2388,14 @@ body.focus-lock{overflow:hidden;}
       </div>
     </div>
 
+    <div class="weekly-box" id="weeklyBox">
+      <div class="weekly-head">
+        <span>주간 계획</span>
+        <button type="button" id="weeklyOpen" title="주간 계획 전체보기" aria-label="주간 계획 전체보기">↗</button>
+      </div>
+      <div class="weekly-current" id="weeklyCurrent"></div>
+    </div>
+
     <div class="exam-box" id="examBox">
       <div class="exam-head">
         <span>시험 기록</span>
@@ -2110,6 +2558,64 @@ body.focus-lock{overflow:hidden;}
     </div>
     <div class="m-actions">
       <button class="btn-cancel" id="ddayManageClose">닫기</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===================== 주간 계획 전체보기 모달 ===================== -->
+<div class="modal-back weekly-back" id="weeklyBack">
+  <div class="modal weekly-modal" role="dialog" aria-modal="true">
+    <div class="weekly-modal-head">
+      <div>
+        <div class="wm-label">Weekly Plan</div>
+        <div class="wm-title">주간 계획 전체보기</div>
+      </div>
+      <button type="button" class="wm-close" id="weeklyClose" aria-label="닫기">×</button>
+    </div>
+    <div class="weekly-modal-body">
+      <button type="button" class="weekly-summary-toggle" id="weeklySummaryToggle">요약 보기</button>
+      <div class="weekly-summary-grid" id="weeklySummaryGrid"></div>
+      <div class="weekly-toolbar">
+        <div class="weekly-month-tabs" id="weeklyMonthTabs"></div>
+        <button type="button" class="weekly-add-btn" id="weeklyAdd">+ 주차 추가</button>
+      </div>
+      <div class="weekly-plan-list" id="weeklyPlanList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 주간 계획 추가/수정 모달 ===================== -->
+<div class="modal-back weekly-edit-back" id="weeklyEditBack">
+  <div class="modal weekly-edit-modal" role="dialog" aria-modal="true">
+    <div class="m-head" id="weeklyEditHead">주간 계획</div>
+    <div class="m-body weekly-edit-body">
+      <div class="m-row">
+        <div class="m-field">
+          <label>월</label>
+          <select id="weeklyMonth"></select>
+        </div>
+        <div class="m-field">
+          <label>주차</label>
+          <select id="weeklyWeek"></select>
+        </div>
+      </div>
+      <div class="weekly-chip-section subject-math">
+        <div class="weekly-chip-title">수학</div>
+        <div class="weekly-chip-grid" id="weeklyMathChips"></div>
+      </div>
+      <div class="weekly-chip-section subject-physics">
+        <div class="weekly-chip-title">물리</div>
+        <div class="weekly-chip-grid" id="weeklyPhysicsChips"></div>
+      </div>
+      <div class="weekly-chip-section subject-chemistry">
+        <div class="weekly-chip-title">화학</div>
+        <div class="weekly-chip-grid" id="weeklyChemistryChips"></div>
+      </div>
+    </div>
+    <div class="m-actions">
+      <button class="btn-cancel" id="weeklyEditCancel">취소</button>
+      <button class="btn-save" id="weeklyEditSave">저장</button>
     </div>
   </div>
 </div>
@@ -2306,7 +2812,7 @@ body.focus-lock{overflow:hidden;}
 </div>
 
 
-<script src="app.js?v=2.8.6"></script>
+<script src="app.js?v=2.8.7"></script>
 
 </body>
 </html>

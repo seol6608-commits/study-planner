@@ -89,6 +89,13 @@ const LocalStorageAdapter = {
   },
   setExamRecords(arr){
     try { localStorage.setItem("planner:examRecords", JSON.stringify(arr)); } catch(e){}
+  },
+  getWeeklyPlans(){
+    try { return JSON.parse(localStorage.getItem("planner:weeklyPlans") || "[]"); }
+    catch(e){ return []; }
+  },
+  setWeeklyPlans(arr){
+    try { localStorage.setItem("planner:weeklyPlans", JSON.stringify(arr)); } catch(e){}
   }
 };
 
@@ -110,6 +117,8 @@ const CloudSyncAdapter = {
   async setPinnedDday(arr){ /* TODO */ },
   async getExamRecords(){ /* TODO */ return []; },
   async setExamRecords(arr){ /* TODO */ },
+  async getWeeklyPlans(){ /* TODO */ return []; },
+  async setWeeklyPlans(arr){ /* TODO */ },
   async fetchEvents(){ /* TODO: 원격 events 컬렉션 읽기 */ return []; }
 };
 
@@ -135,6 +144,11 @@ let studyTemplates = [];
 let selectedTemplateId = null;
 let pinnedDdayIds = [];
 let examRecords = [];
+let weeklyPlans = [];
+let weeklyModalMonth = null;
+let weeklyEditingId = null;
+let weeklyEditDraft = null;
+let weeklySummaryOpen = false;
 let timerLogs = [];
 let activeFocusTimer = null;
 let focusTickHandle = null;
@@ -374,7 +388,7 @@ function saveExamRecords(sync){
 function renderExamRecords(){
   const list = document.getElementById('examList');
   if(!list) return;
-  const recent = examRecords.slice().sort((a,b)=> (b.createdAt||0) - (a.createdAt||0)).slice(0, 5);
+  const recent = examRecords.slice().sort((a,b)=> (b.createdAt||0) - (a.createdAt||0));
   if(!recent.length){
     list.innerHTML = '<div class="exam-empty">기록 없음</div>';
     return;
@@ -420,6 +434,265 @@ function saveExamModal(){
   renderExamRecords();
   closeExamModal();
 }
+
+/* ============================================================================
+ *  V2.8.7 주간 계획
+ * ========================================================================== */
+const WEEKLY_AREAS = {
+  math: ['미분','적분','선형대수','급수','다변수','공학수학'],
+  physics: ['역학','열역학','전자기','파동','광학','현대물리','회로'],
+  chemistry: ['화학양론','원자구조','주기성','화학결합','분자구조','열화학','화학평형','산염기','전기화학','반응속도','고급화학']
+};
+const WEEKLY_SUBJECT_META = {
+  math: { label:'수학', cls:'math' },
+  physics: { label:'물리', cls:'physics' },
+  chemistry: { label:'화학', cls:'chemistry' }
+};
+function loadWeeklyPlans(){
+  weeklyPlans = (Storage.getWeeklyPlans && Storage.getWeeklyPlans()) || [];
+  if(!Array.isArray(weeklyPlans)) weeklyPlans = [];
+  weeklyPlans = weeklyPlans.filter(Boolean).map(p=>({
+    id: p.id || weeklyPlanId(p.year, p.month, p.week),
+    year: Number(p.year) || new Date().getFullYear(),
+    month: Number(p.month) || 1,
+    week: Number(p.week) || 1,
+    math: Array.isArray(p.math) ? p.math : [],
+    physics: Array.isArray(p.physics) ? p.physics : [],
+    chemistry: Array.isArray(p.chemistry) ? p.chemistry : [],
+    createdAt: p.createdAt || Date.now(),
+    updatedAt: p.updatedAt || p.createdAt || Date.now()
+  }));
+}
+function saveWeeklyPlans(sync){
+  if(Storage.setWeeklyPlans) Storage.setWeeklyPlans(weeklyPlans);
+  if(sync !== false) scheduleNotesSave();
+}
+function weeklyPlanId(year, month, week){
+  return `${year}-${String(month).padStart(2,'0')}-W${week}`;
+}
+function weekOfMonth(date){
+  const d = date instanceof Date ? new Date(date) : parseDate(date);
+  const first = new Date(d.getFullYear(), d.getMonth(), 1);
+  const offset = (first.getDay()+6)%7; // 월요일 시작
+  return Math.ceil((d.getDate() + offset) / 7);
+}
+function selectedWeekInfo(){
+  const d = parseDate(AppState.selectedDate);
+  return { year:d.getFullYear(), month:d.getMonth()+1, week:weekOfMonth(d) };
+}
+function planForWeek(year, month, week){
+  return weeklyPlans.find(p=>Number(p.year)===Number(year) && Number(p.month)===Number(month) && Number(p.week)===Number(week));
+}
+function compactArea(arr){
+  return (arr && arr.length) ? arr.join(', ') : '미지정';
+}
+function weeklyLineHtml(label, arr, cls){
+  return `<div class="weekly-line ${cls||''}"><b>${label}</b><span>${escapeHtml(compactArea(arr))}</span></div>`;
+}
+function renderWeeklyCurrent(){
+  const el = document.getElementById('weeklyCurrent');
+  if(!el) return;
+  const info = selectedWeekInfo();
+  const plan = planForWeek(info.year, info.month, info.week);
+  if(!plan){
+    el.innerHTML = `<div class="weekly-week-title">${info.month}월 ${info.week}주차</div>`
+      + `<div class="weekly-empty">아직 주간 계획 없음<br>↗ 버튼으로 추가</div>`;
+    return;
+  }
+  el.innerHTML = `<div class="weekly-week-title">${plan.month}월 ${plan.week}주차</div>`
+    + weeklyLineHtml('수학', plan.math, 'math')
+    + weeklyLineHtml('물리', plan.physics, 'physics')
+    + weeklyLineHtml('화학', plan.chemistry, 'chemistry');
+}
+function weeklyMonths(){
+  const info = selectedWeekInfo();
+  const set = new Set([6,7,8, info.month]);
+  weeklyPlans.forEach(p => { if(Number(p.year) === Number(info.year)) set.add(Number(p.month)); });
+  return Array.from(set).filter(m=>m>=1 && m<=12).sort((a,b)=>a-b);
+}
+function ensureWeeklyModalMonth(){
+  const info = selectedWeekInfo();
+  if(!weeklyModalMonth || !weeklyMonths().includes(Number(weeklyModalMonth))) weeklyModalMonth = info.month;
+}
+function topAndLowForSubject(key){
+  const all = WEEKLY_AREAS[key];
+  const counts = {};
+  all.forEach(x=>counts[x]=0);
+  weeklyPlans.forEach(p => (p[key] || []).forEach(x => { if(counts[x] !== undefined) counts[x] += 1; }));
+  const top = all.slice().sort((a,b)=> counts[b] - counts[a] || all.indexOf(a)-all.indexOf(b)).filter(x=>counts[x]>0).slice(0,2);
+  const low = all.slice().sort((a,b)=> counts[a] - counts[b] || all.indexOf(a)-all.indexOf(b)).slice(0,2);
+  return { top, low };
+}
+function renderWeeklySummary(){
+  const grid = document.getElementById('weeklySummaryGrid');
+  if(!grid) return;
+  grid.classList.toggle('open', weeklySummaryOpen);
+  grid.innerHTML = ['math','physics','chemistry'].map(key=>{
+    const meta = WEEKLY_SUBJECT_META[key];
+    const { top, low } = topAndLowForSubject(key);
+    return `<div class="weekly-summary-card ${meta.cls}">`
+      + `<div class="wsc-title">${meta.label}</div>`
+      + `<div class="wsc-row"><b>많이</b><span>${escapeHtml(top.length ? top.join(', ') : '기록 없음')}</span></div>`
+      + `<div class="wsc-row"><b>덜함</b><span>${escapeHtml(low.length ? low.join(', ') : '기록 없음')}</span></div>`
+      + `</div>`;
+  }).join('');
+}
+function renderWeeklyMonthTabs(){
+  const tabs = document.getElementById('weeklyMonthTabs');
+  if(!tabs) return;
+  ensureWeeklyModalMonth();
+  tabs.innerHTML = weeklyMonths().map(m => `<button type="button" class="${Number(m)===Number(weeklyModalMonth)?'active':''}" data-month="${m}">${m}월</button>`).join('');
+  tabs.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      weeklyModalMonth = Number(btn.dataset.month);
+      renderWeeklyModal();
+    });
+  });
+}
+function planCardHtml(plan){
+  return `<div class="weekly-plan-card" data-id="${escapeHtml(plan.id)}">`
+    + `<div class="wpc-head"><div class="wpc-title">${plan.month}월 ${plan.week}주차</div>`
+    + `<div class="wpc-actions"><button type="button" class="edit">수정</button><button type="button" class="delete">삭제</button></div></div>`
+    + `<div class="wpc-row math"><b>수학</b><span>${escapeHtml(compactArea(plan.math))}</span></div>`
+    + `<div class="wpc-row physics"><b>물리</b><span>${escapeHtml(compactArea(plan.physics))}</span></div>`
+    + `<div class="wpc-row chemistry"><b>화학</b><span>${escapeHtml(compactArea(plan.chemistry))}</span></div>`
+    + `</div>`;
+}
+function renderWeeklyPlanList(){
+  const list = document.getElementById('weeklyPlanList');
+  if(!list) return;
+  const info = selectedWeekInfo();
+  const plans = weeklyPlans
+    .filter(p => Number(p.year) === Number(info.year) && Number(p.month) === Number(weeklyModalMonth))
+    .sort((a,b)=> Number(a.week)-Number(b.week));
+  if(!plans.length){
+    list.innerHTML = `<div class="weekly-list-empty">${weeklyModalMonth}월 주간 계획이 없습니다.<br>+ 주차 추가로 입력하세요.</div>`;
+  } else {
+    list.innerHTML = plans.map(planCardHtml).join('');
+  }
+  list.querySelectorAll('.weekly-plan-card .edit').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.closest('.weekly-plan-card')?.dataset.id;
+      openWeeklyEdit(id);
+    });
+  });
+  list.querySelectorAll('.weekly-plan-card .delete').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.closest('.weekly-plan-card')?.dataset.id;
+      deleteWeeklyPlan(id);
+    });
+  });
+}
+function renderWeeklyModal(){
+  renderWeeklySummary();
+  renderWeeklyMonthTabs();
+  renderWeeklyPlanList();
+  const tgl = document.getElementById('weeklySummaryToggle');
+  if(tgl) tgl.textContent = weeklySummaryOpen ? '요약 접기' : '요약 보기';
+}
+function openWeeklyModal(){
+  ensureWeeklyModalMonth();
+  weeklySummaryOpen = window.matchMedia && window.matchMedia('(min-width:721px)').matches;
+  renderWeeklyModal();
+  document.getElementById('weeklyBack')?.classList.add('open');
+}
+function closeWeeklyModal(){
+  document.getElementById('weeklyBack')?.classList.remove('open');
+}
+function fillWeeklySelects(month, week){
+  const mSel = document.getElementById('weeklyMonth');
+  const wSel = document.getElementById('weeklyWeek');
+  if(!mSel || !wSel) return;
+  const months = weeklyMonths();
+  if(!months.includes(Number(month))) months.push(Number(month));
+  mSel.innerHTML = months.sort((a,b)=>a-b).map(m=>`<option value="${m}">${m}월</option>`).join('');
+  wSel.innerHTML = [1,2,3,4,5,6].map(w=>`<option value="${w}">${w}주차</option>`).join('');
+  mSel.value = String(month);
+  wSel.value = String(week);
+}
+function renderWeeklyChipGroup(elId, key, selected){
+  const el = document.getElementById(elId);
+  if(!el) return;
+  const set = new Set(selected || []);
+  el.innerHTML = WEEKLY_AREAS[key].map(x => `<button type="button" class="weekly-chip ${set.has(x)?'active':''}" data-value="${escapeHtml(x)}">${escapeHtml(x)}</button>`).join('');
+  el.querySelectorAll('.weekly-chip').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      btn.classList.toggle('active');
+    });
+  });
+}
+function chipValues(elId){
+  const el = document.getElementById(elId);
+  if(!el) return [];
+  return Array.from(el.querySelectorAll('.weekly-chip.active')).map(btn=>btn.dataset.value);
+}
+function openWeeklyEdit(id){
+  const info = selectedWeekInfo();
+  const existing = id ? weeklyPlans.find(p=>p.id === id) : null;
+  weeklyEditingId = existing ? existing.id : null;
+  const base = existing || { year:info.year, month:weeklyModalMonth || info.month, week:info.week, math:[], physics:[], chemistry:[] };
+  weeklyEditDraft = JSON.parse(JSON.stringify(base));
+  document.getElementById('weeklyEditHead').textContent = existing ? `${base.month}월 ${base.week}주차 계획 수정` : '주간 계획 추가';
+  fillWeeklySelects(base.month, base.week);
+  renderWeeklyChipGroup('weeklyMathChips', 'math', base.math);
+  renderWeeklyChipGroup('weeklyPhysicsChips', 'physics', base.physics);
+  renderWeeklyChipGroup('weeklyChemistryChips', 'chemistry', base.chemistry);
+  document.getElementById('weeklyEditBack')?.classList.add('open');
+}
+function closeWeeklyEdit(){
+  weeklyEditingId = null;
+  weeklyEditDraft = null;
+  document.getElementById('weeklyEditBack')?.classList.remove('open');
+}
+function saveWeeklyEdit(){
+  const info = selectedWeekInfo();
+  const month = Number(document.getElementById('weeklyMonth')?.value || info.month);
+  const week = Number(document.getElementById('weeklyWeek')?.value || info.week);
+  const id = weeklyPlanId(info.year, month, week);
+  const plan = {
+    id, year: info.year, month, week,
+    math: chipValues('weeklyMathChips'),
+    physics: chipValues('weeklyPhysicsChips'),
+    chemistry: chipValues('weeklyChemistryChips'),
+    createdAt: weeklyEditingId ? (weeklyPlans.find(p=>p.id===weeklyEditingId)?.createdAt || Date.now()) : Date.now(),
+    updatedAt: Date.now()
+  };
+  weeklyPlans = weeklyPlans.filter(p => p.id !== weeklyEditingId && p.id !== id);
+  weeklyPlans.push(plan);
+  weeklyPlans.sort((a,b)=> a.year-b.year || a.month-b.month || a.week-b.week);
+  weeklyModalMonth = month;
+  saveWeeklyPlans();
+  closeWeeklyEdit();
+  renderWeeklyCurrent();
+  renderWeeklyModal();
+}
+function deleteWeeklyPlan(id){
+  const plan = weeklyPlans.find(p=>p.id===id);
+  if(!plan) return;
+  if(!confirm(`${plan.month}월 ${plan.week}주차 계획을 삭제할까요?`)) return;
+  weeklyPlans = weeklyPlans.filter(p=>p.id!==id);
+  saveWeeklyPlans();
+  renderWeeklyCurrent();
+  renderWeeklyModal();
+}
+function bindWeeklyUI(){
+  document.getElementById('weeklyOpen')?.addEventListener('click', openWeeklyModal);
+  document.getElementById('weeklyClose')?.addEventListener('click', closeWeeklyModal);
+  document.getElementById('weeklyAdd')?.addEventListener('click', ()=>openWeeklyEdit(null));
+  document.getElementById('weeklyEditCancel')?.addEventListener('click', closeWeeklyEdit);
+  document.getElementById('weeklyEditSave')?.addEventListener('click', saveWeeklyEdit);
+  document.getElementById('weeklySummaryToggle')?.addEventListener('click', ()=>{
+    weeklySummaryOpen = !weeklySummaryOpen;
+    renderWeeklySummary();
+    const tgl = document.getElementById('weeklySummaryToggle');
+    if(tgl) tgl.textContent = weeklySummaryOpen ? '요약 접기' : '요약 보기';
+  });
+  const back = document.getElementById('weeklyBack');
+  if(back) back.addEventListener('click', e=>{ if(e.target === back) closeWeeklyModal(); });
+  const editBack = document.getElementById('weeklyEditBack');
+  if(editBack) editBack.addEventListener('click', e=>{ if(e.target === editBack) closeWeeklyEdit(); });
+}
+
 function eventSubText(e, baseDate){
   const d = ddayLabel(calculateDday(e.date, baseDate || AppState.selectedDate));
   const time = e.startTime && e.endTime ? ` · ${e.startTime}~${e.endTime}` : '';
@@ -1039,6 +1312,9 @@ function renderPlannerPage(date){
   } else {
     totalEl.innerHTML = '';
   }
+
+  /* WEEKLY — 선택일 기준 주간 계획 요약 */
+  if(typeof renderWeeklyCurrent === 'function') renderWeeklyCurrent();
 
   /* D-DAY — 선택일 기준 가장 가까운 주요 일정 (시험·과제·기타 우선, 개인 일정 제외) */
   renderDday(date);
@@ -2450,10 +2726,13 @@ document.addEventListener('click', function(e){
   loadTemplates();
   loadPinnedDday();
   loadExamRecords();
+  loadWeeklyPlans();
+  bindWeeklyUI();
   EventsStore.reattachTodoMeta();
   const t = parseDate(todayStr());
   AppState.view = { year: t.getFullYear(), month: t.getMonth() };
   renderCalendar();
+  renderWeeklyCurrent();
   renderPlannerPage(AppState.selectedDate);
   loadPostits(); renderPostits();      // 포스트잇 (가로 전용)
   renderStats();                       // 공부시간 통계 (가로 전용)
