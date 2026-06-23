@@ -374,7 +374,7 @@ function eventSubText(e, baseDate){
 function ddayListItem(e, baseDate){
   return `<li><span class="dl-tag">${ddayLabel(calculateDday(e.date, baseDate))}</span>`
     + `<span class="dd-dot" style="background:${TYPE_COLOR[e.type]||TYPE_COLOR.etc}"></span>`
-    + `<span class="up-title">${escapeHtml(displayTitle(e))}</span></li>`;
+    + `<span class="dday-title-scroll"><span class="dday-title-content up-title">${escapeHtml(displayTitle(e))}</span></span></li>`;
 }
 
 function tagColor(name){
@@ -1014,7 +1014,7 @@ function renderDday(date){
     html += pinned.map(e => `<div class="dday-main pinned">`
       + `<span class="dday-tag">${ddayLabel(calculateDday(e.date, date))}</span>`
       + `<span class="dd-dot" style="background:${TYPE_COLOR[e.type]||TYPE_COLOR.etc}"></span>`
-      + `<span class="dday-title">${escapeHtml(displayTitle(e))}</span>`
+      + `<span class="dday-title-scroll"><span class="dday-title-content dday-title">${escapeHtml(displayTitle(e))}</span></span>`
       + `</div>`).join('');
   } else {
     html += `<div class="dday-empty">대표 일정 없음</div>`;

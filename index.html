@@ -955,8 +955,6 @@ body{
 .field.dday .dday-title{
   flex:1 1 auto;
   min-width:0;
-  overflow:hidden;
-  text-overflow:ellipsis;
   white-space:nowrap;
   word-break:keep-all;
 }
@@ -971,12 +969,50 @@ body{
 }
 .field.dday .dday-list li span:last-child{
   min-width:0;
-  overflow:hidden;
-  text-overflow:ellipsis;
   white-space:nowrap;
 }
 @media (max-width:600px){
   .field.dday .dday-tag{min-width:36px;font-size:13px;}
+}
+
+
+/* V2.6 D-Day 일정명 가로 스크롤 실제 수정: 바깥 영역 스크롤 + 안쪽 텍스트 실제 폭 유지 */
+.field.dday .dday-main{
+  overflow:visible;
+}
+.field.dday .dday-title-scroll{
+  flex:1 1 auto;
+  min-width:0;
+  overflow-x:auto;
+  overflow-y:hidden;
+  white-space:nowrap;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:thin;
+  scrollbar-color:var(--line) transparent;
+  padding-bottom:1px;
+}
+.field.dday .dday-title-scroll::-webkit-scrollbar{
+  height:4px;
+}
+.field.dday .dday-title-scroll::-webkit-scrollbar-thumb{
+  background:var(--line);
+  border-radius:4px;
+}
+.field.dday .dday-title-scroll::-webkit-scrollbar-track{
+  background:transparent;
+}
+.field.dday .dday-title-content,
+.field.dday .up-title,
+.field.dday .dday-title{
+  display:inline-block;
+  min-width:max-content;
+  padding-right:8px;
+  white-space:nowrap;
+  word-break:keep-all;
+  text-overflow:clip;
+}
+.field.dday .dday-list li{
+  align-items:center;
 }
 
 /* ============================================================
