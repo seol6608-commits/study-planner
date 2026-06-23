@@ -82,6 +82,13 @@ const LocalStorageAdapter = {
   },
   setPinnedDday(arr){
     try { localStorage.setItem("planner:pinnedDday", JSON.stringify(arr)); } catch(e){}
+  },
+  getExamRecords(){
+    try { return JSON.parse(localStorage.getItem("planner:examRecords") || "[]"); }
+    catch(e){ return []; }
+  },
+  setExamRecords(arr){
+    try { localStorage.setItem("planner:examRecords", JSON.stringify(arr)); } catch(e){}
   }
 };
 
@@ -101,6 +108,8 @@ const CloudSyncAdapter = {
   async setTemplates(arr){ /* TODO */ },
   async getPinnedDday(){ /* TODO */ return []; },
   async setPinnedDday(arr){ /* TODO */ },
+  async getExamRecords(){ /* TODO */ return []; },
+  async setExamRecords(arr){ /* TODO */ },
   async fetchEvents(){ /* TODO: 원격 events 컬렉션 읽기 */ return []; }
 };
 
@@ -125,6 +134,7 @@ let todoMeta = {};                            // { todoId: {start,end,tag} }
 let studyTemplates = [];
 let selectedTemplateId = null;
 let pinnedDdayIds = [];
+let examRecords = [];
 
 const DEFAULT_TEMPLATES = [
   { id:'tpl-standard', name:'표준형', blocks:[
@@ -276,6 +286,65 @@ function addPinnedDday(id){
 }
 function removePinnedDday(id){
   if(pinnedDdayIds.includes(id)){ pinnedDdayIds = pinnedDdayIds.filter(x=>x!==id); savePinnedDday(); }
+}
+
+function loadExamRecords(){
+  examRecords = (Storage.getExamRecords && Storage.getExamRecords()) || [];
+  if(!Array.isArray(examRecords)) examRecords = [];
+}
+function saveExamRecords(sync){
+  examRecords = examRecords.filter(r => r && (r.subject || r.score || r.rank));
+  if(Storage.setExamRecords) Storage.setExamRecords(examRecords);
+  if(sync !== false) scheduleNotesSave();
+}
+function renderExamRecords(){
+  const list = document.getElementById('examList');
+  if(!list) return;
+  const recent = examRecords.slice().sort((a,b)=> (b.createdAt||0) - (a.createdAt||0)).slice(0, 5);
+  if(!recent.length){
+    list.innerHTML = '<div class="exam-empty">기록 없음</div>';
+    return;
+  }
+  list.innerHTML = recent.map(r => `<div class="exam-item" data-id="${escapeHtml(r.id)}">`
+    + `<span class="exam-subject">${escapeHtml(r.subject||'과목')}</span>`
+    + `<span>${escapeHtml(r.score||'-')}점</span>`
+    + `<span>${escapeHtml(r.rank||'-')}등</span>`
+    + `<button type="button" class="exam-del" title="기록 삭제">×</button>`
+    + `</div>`).join('');
+  list.querySelectorAll('.exam-del').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const row = btn.closest('.exam-item');
+      const id = row && row.dataset.id;
+      if(!id) return;
+      if(!confirm('이 시험 기록을 삭제할까요?')) return;
+      examRecords = examRecords.filter(r => r.id !== id);
+      saveExamRecords();
+      renderExamRecords();
+    });
+  });
+}
+function openExamModal(){
+  const back = document.getElementById('examBack');
+  if(!back) return;
+  document.getElementById('examSubject').value = '';
+  document.getElementById('examScore').value = '';
+  document.getElementById('examRank').value = '';
+  back.classList.add('open');
+  setTimeout(()=>document.getElementById('examSubject').focus(), 40);
+}
+function closeExamModal(){
+  const back = document.getElementById('examBack');
+  if(back) back.classList.remove('open');
+}
+function saveExamModal(){
+  const subject = document.getElementById('examSubject').value.trim();
+  const score = document.getElementById('examScore').value.trim();
+  const rank = document.getElementById('examRank').value.trim();
+  if(!subject){ document.getElementById('examSubject').focus(); return; }
+  examRecords.push({ id:'exam-'+Date.now()+'-'+Math.floor(Math.random()*1000), subject, score, rank, createdAt:Date.now() });
+  saveExamRecords();
+  renderExamRecords();
+  closeExamModal();
 }
 function eventSubText(e, baseDate){
   const d = ddayLabel(calculateDday(e.date, baseDate || AppState.selectedDate));
@@ -702,6 +771,7 @@ function collectLocalNotes(){
   o._tags = subjectTags;             // 과목 태그 목록·색
   o._templates = studyTemplates;       // 시간표 템플릿
   o._pinnedDday = pinnedDdayIds;       // 대표 D-Day 일정
+  o._examRecords = examRecords;        // 간단 시험 기록
   return o;
 }
 function applyNotes(obj){
@@ -724,6 +794,12 @@ function applyNotes(obj){
       if(Array.isArray(obj._pinnedDday)){
         pinnedDdayIds = obj._pinnedDday;
         Storage.setPinnedDday(pinnedDdayIds);
+      }
+    } else if(key === '_examRecords'){
+      if(Array.isArray(obj._examRecords)){
+        examRecords = obj._examRecords;
+        Storage.setExamRecords(examRecords);
+        renderExamRecords();
       }
     } else if(key.indexOf('_') !== 0 && obj[key]){
       localStorage.setItem('planner:note:'+key, obj[key]);
@@ -1503,14 +1579,63 @@ document.getElementById('tplDelete').addEventListener('click', ()=>{
   saveTemplates();
   renderTemplateModal();
 });
-async function applyCurrentTemplate(){
-  const tpl = currentTemplate();
-  if(!tpl || !tpl.blocks.length) return;
-  const date = AppState.selectedDate;
-  const valid = sortTemplateBlocks(tpl.blocks).filter(b => b.title && b.start && b.end);
-  if(!valid.length) return;
-  if(!confirm(`${date}에 '${tpl.name}' 템플릿 ${valid.length}개 블록을 추가할까요?\n기존 할일은 유지됩니다.`)) return;
-  closeTemplateModal();
+function templateMatchKey(title, start, end){ return `${title||''}|${start||''}|${end||''}`; }
+function currentTemplateTodos(date, valid){
+  const validKeys = new Set((valid||[]).map(b => templateMatchKey(b.title, b.start, b.end)));
+  return EventsStore.getAll().filter(e => {
+    if(!e || e.type !== 'todo' || e.date !== date) return false;
+    const m = todoMeta[e.id] || {};
+    if(m.isTemplate) return true;
+    return validKeys.has(templateMatchKey(e.title, e.startTime || m.start, e.endTime || m.end));
+  });
+}
+function allDayTodos(date){
+  return EventsStore.getAll().filter(e => e && e.type === 'todo' && e.date === date);
+}
+function chooseTemplateApplyMode(date, tplName, valid, existing){
+  const hasExisting = existing && existing.length;
+  const msg = `${date}에 '${tplName}' 템플릿 ${valid.length}개 블록을 적용합니다.
+
+`
+    + (hasExisting ? `이미 템플릿으로 보이는 항목 ${existing.length}개가 있습니다.
+
+` : '')
+    + `적용 방식 번호를 입력하세요.
+`
+    + `1 = 기존 템플릿 항목만 교체
+`
+    + `2 = 기존 할일 유지하고 추가
+`
+    + `3 = 오늘 할일 전체 비우고 적용
+
+`
+    + `취소를 누르면 적용하지 않습니다.`;
+  const ans = prompt(msg, hasExisting ? '1' : '2');
+  if(ans == null) return 'cancel';
+  const v = String(ans).trim();
+  if(v === '1') return 'replace-template';
+  if(v === '2') return 'append';
+  if(v === '3') return 'clear-day';
+  alert('1, 2, 3 중 하나를 입력하세요.');
+  return 'cancel';
+}
+async function deleteTodoItemsForTemplate(items){
+  let googleDeleted = false;
+  for(const e of items){
+    if(!e) continue;
+    delete todoMeta[e.id];
+    if(e.source === 'google-tasks' && isTokenValid()){
+      try{ await gtaskDelete(e.id); googleDeleted = true; }
+      catch(err){ console.error(err); }
+    } else {
+      EventsStore.removeEvent(e.id);
+    }
+  }
+  Storage.setTodoMeta(todoMeta);
+  EventsStore.reattachTodoMeta();
+  if(googleDeleted) await syncTasks();
+}
+async function createTemplateTodos(date, tpl, valid){
   for(const b of valid){ addSubjectTag(b.tag || b.title || '기타'); }
   if(isTokenValid()){
     setSyncStatus('템플릿 적용 중…');
@@ -1518,12 +1643,12 @@ async function applyCurrentTemplate(){
       try{
         const created = await gtaskInsert(b.title, date);
         if(created && created.id){
-          todoMeta[created.id] = { start:b.start, end:b.end, tag:b.tag || b.title || '기타' };
+          todoMeta[created.id] = { start:b.start, end:b.end, tag:b.tag || b.title || '기타', isTemplate:true, templateId:tpl.id, templateName:tpl.name };
         }
       }catch(err){
         console.error(err);
         const e = EventsStore.addTodo(date, b.title);
-        todoMeta[e.id] = { start:b.start, end:b.end, tag:b.tag || b.title || '기타' };
+        todoMeta[e.id] = { start:b.start, end:b.end, tag:b.tag || b.title || '기타', isTemplate:true, templateId:tpl.id, templateName:tpl.name };
       }
     }
     Storage.setTodoMeta(todoMeta);
@@ -1533,12 +1658,36 @@ async function applyCurrentTemplate(){
   } else {
     valid.forEach(b=>{
       const e = EventsStore.addTodo(date, b.title);
-      todoMeta[e.id] = { start:b.start, end:b.end, tag:b.tag || b.title || '기타' };
+      todoMeta[e.id] = { start:b.start, end:b.end, tag:b.tag || b.title || '기타', isTemplate:true, templateId:tpl.id, templateName:tpl.name };
     });
+    Storage.setTodoMeta(todoMeta);
+    EventsStore.reattachTodoMeta();
+  }
+}
+async function applyCurrentTemplate(){
+  const tpl = currentTemplate();
+  if(!tpl || !tpl.blocks.length) return;
+  const date = AppState.selectedDate;
+  const valid = sortTemplateBlocks(tpl.blocks).filter(b => b.title && b.start && b.end);
+  if(!valid.length) return;
+  const existingTemplateItems = currentTemplateTodos(date, valid);
+  const mode = chooseTemplateApplyMode(date, tpl.name, valid, existingTemplateItems);
+  if(mode === 'cancel') return;
+  closeTemplateModal();
+  try{
+    if(mode === 'replace-template'){
+      await deleteTodoItemsForTemplate(existingTemplateItems);
+    } else if(mode === 'clear-day'){
+      await deleteTodoItemsForTemplate(allDayTodos(date));
+    }
+    await createTemplateTodos(date, tpl, valid);
     Storage.setTodoMeta(todoMeta);
     EventsStore.reattachTodoMeta();
     renderCalendar();
     renderPlannerPage(date);
+  }catch(err){
+    console.error(err);
+    setSyncStatus('템플릿 적용 중 오류', true);
   }
 }
 document.getElementById('tplApply').addEventListener('click', applyCurrentTemplate);
@@ -1604,6 +1753,20 @@ document.getElementById('ddayManageClose').addEventListener('click', closeDdayMa
 ddayManageBack.addEventListener('click', (e)=>{ if(e.target === ddayManageBack) closeDdayManager(); });
 document.getElementById('ddayAddEvent').addEventListener('click', ()=>{ closeDdayManager(); openModal(); });
 
+/* ---------- 시험 기록 ---------- */
+const examBack = document.getElementById('examBack');
+const examAddBtn = document.getElementById('examAdd');
+if(examAddBtn) examAddBtn.addEventListener('click', openExamModal);
+if(examBack) examBack.addEventListener('click', (e)=>{ if(e.target === examBack) closeExamModal(); });
+const examCancelBtn = document.getElementById('examCancel');
+if(examCancelBtn) examCancelBtn.addEventListener('click', closeExamModal);
+const examSaveBtn = document.getElementById('examSave');
+if(examSaveBtn) examSaveBtn.addEventListener('click', saveExamModal);
+['examSubject','examScore','examRank'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('keydown', e=>{ if(e.key === 'Enter') saveExamModal(); });
+});
+
 /* ---------- 구글 연동 동작 ---------- */
 function setSyncStatus(msg, isErr){
   const el = document.getElementById('gcalStatus');
@@ -1662,6 +1825,7 @@ function signOut(){
   updateAuthUI();
   setSyncStatus('');
   renderCalendar();
+  renderExamRecords();
   renderPlannerPage(AppState.selectedDate);
 }
 async function syncFromGoogle(){
@@ -1869,6 +2033,7 @@ function renderStats(){
   if(savedTags && savedTags.length) subjectTags = savedTags;
   loadTemplates();
   loadPinnedDday();
+  loadExamRecords();
   EventsStore.reattachTodoMeta();
   const t = parseDate(todayStr());
   AppState.view = { year: t.getFullYear(), month: t.getMonth() };
