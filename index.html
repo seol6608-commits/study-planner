@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>Study Planner · 템플릿 V2</title>
+<title>Study Planner · 일정 확인</title>
 <meta name="theme-color" content="#5E87A8" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -254,53 +254,36 @@ body{
 .field.date .val{font-size:16px;letter-spacing:.02em;}
 
 /* D-DAY */
-.field.dday > h3{
-  display:flex;align-items:center;justify-content:space-between;gap:8px;
-  white-space:nowrap;word-break:keep-all;letter-spacing:.12em;
-}
-.field.dday .val{overflow:hidden;}
 .field.dday .dday-main{
-  display:flex;align-items:center;gap:7px;min-width:0;white-space:nowrap;
+  display:flex;align-items:baseline;gap:8px;
 }
-.field.dday .dday-main.pinned{margin-bottom:7px;}
 .field.dday .dday-tag{
-  flex:0 0 auto;
   font-family:var(--font-label);
   font-size:20px;
   font-weight:500;
   color:var(--blue-deep);
   letter-spacing:.04em;
 }
-.field.dday .dday-title{
-  font-size:13px;color:var(--text);min-width:0;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-}
+.field.dday .dday-title{font-size:13px;color:var(--text);}
 .dd-dot{flex:0 0 auto;width:8px;height:8px;border-radius:50%;display:inline-block;align-self:center;}
 .field.dday .dday-list li .dd-dot{margin-right:2px;}
-.dday-section-label{
-  font-size:10.5px;color:var(--text-sub);letter-spacing:.08em;
-  border-top:1px solid var(--line-soft);padding-top:7px;margin-top:6px;
-}
 .field.dday .dday-list{
-  list-style:none;margin-top:4px;
+  list-style:none;margin-top:8px;
+  border-top:1px solid var(--line-soft);padding-top:8px;
   max-height:108px;overflow-y:auto;            /* 길어도 영역 고정 → 페이지 유지 */
   overscroll-behavior:contain;
 }
 .field.dday .dday-list::-webkit-scrollbar{width:4px;}
 .field.dday .dday-list::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px;}
 .field.dday .dday-list li{
-  display:flex;align-items:center;gap:7px;min-width:0;
+  display:flex;align-items:center;gap:8px;
   font-size:12px;padding:3px 0;color:var(--text-sub);
-}
-.field.dday .dday-list li .up-title{
-  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .field.dday .dday-list .dl-tag{
   font-family:var(--font-label);
   font-weight:500;color:var(--blue-main);
   font-size:12px;min-width:38px;
 }
-.dday-empty{font-size:12px;color:#B6C5D0;padding:2px 0 4px;}
 .field.dday .val.empty-line{border-bottom:1px solid var(--line);min-height:34px;}
 
 /* CONTENTS / TOTAL */
@@ -819,17 +802,10 @@ body{
   .field.date .val{font-size:13px;}
 
   /* D-DAY 한 줄 · 폰트 축소 (두 줄 겹침 해결) */
-  .field.dday > h3{font-size:9px;letter-spacing:.06em;white-space:nowrap;}
-  .field.dday > h3 .add-btn{font-size:10px;padding:1px 7px;}
-  .field.dday .dday-main{white-space:nowrap;overflow:hidden;align-items:center;}
+  .field.dday .dday-main{white-space:nowrap;overflow:hidden;align-items:baseline;}
   .field.dday .dday-tag{font-size:14px;}
   .field.dday .dday-title{font-size:11px;overflow:hidden;text-overflow:ellipsis;}
-  .field.dday .dday-main.pinned{margin-bottom:3px;}
-  .dday-section-label{font-size:9px;margin-top:3px;padding-top:3px;}
-  .field.dday .dday-list{display:block;max-height:54px;overflow-y:auto;margin-top:2px;}
-  .field.dday .dday-list li{font-size:10.5px;padding:1px 0;gap:5px;}
-  .field.dday .dday-list .dl-tag{font-size:10.5px;min-width:32px;}
-  .dday-empty{font-size:10.5px;padding:0;}
+  .field.dday .dday-list{display:none;}           /* 헤드라인만 표시 */
   .field.dday .val.empty-line{min-height:22px;}
 
   /* TASK = 메인 영역, 할일이 많으면 이 목록 안에서만 세로 스크롤 */
@@ -996,43 +972,6 @@ body{
   text-align:center;
   padding:18px 0;
 }
-/* V2: 템플릿 카드/캘린더 관리 */
-.tpl-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;}
-.tpl-pill{border-radius:12px;text-align:left;padding:9px 10px;background:linear-gradient(135deg,#fff 0%,#F7FBFD 100%);}
-.tpl-pill small{display:block;margin-top:2px;font-size:10.5px;color:var(--text-sub);font-weight:400;}
-.tpl-pill.active small{color:rgba(255,255,255,.78);}
-.tpl-preview{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0 10px;}
-.tpl-preview-chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--text);background:#fff;border:1px solid var(--line-soft);border-radius:999px;padding:2px 7px;}
-.tpl-preview-chip i{width:7px;height:7px;border-radius:50%;display:inline-block;}
-.tpl-block-row{border-left:4px solid transparent;background:rgba(255,255,255,.78);border-radius:9px;padding:4px;}
-.tpl-block-row[data-tag="수학"]{border-left-color:#5E87A8;}
-.tpl-block-row[data-tag="물리"]{border-left-color:#6FA08B;}
-.tpl-block-row[data-tag="화학"]{border-left-color:#C58F6E;}
-.tpl-block-row[data-tag="현강"]{border-left-color:#3F6B8E;}
-.tpl-block-row[data-tag="휴식"]{border-left-color:#B6C5D0;}
-.tpl-block-row[data-tag="종합"],.tpl-block-row[data-tag="정리"],.tpl-block-row[data-tag="수학/물리"]{border-left-color:#8E7BB0;}
-.cal-manage-modal{max-width:560px;}
-.cal-manage-note{font-size:12px;color:var(--text-sub);line-height:1.55;margin-bottom:12px;}
-.cal-section{border:1px solid var(--line-soft);border-radius:12px;background:rgba(238,246,250,.35);padding:10px;margin-bottom:10px;}
-.cal-section h4{font-family:var(--font-label);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--blue-deep);margin-bottom:6px;}
-.cal-manage-list{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;overscroll-behavior:contain;}
-.cal-item{display:flex;align-items:center;gap:7px;min-width:0;background:#fff;border:1px solid var(--line-soft);border-radius:10px;padding:7px 8px;}
-.cal-item .cal-pin{flex:0 0 auto;border:none;background:transparent;color:#B6C5D0;font-size:18px;cursor:pointer;line-height:1;}
-.cal-item .cal-pin.on{color:var(--blue-main);}
-.cal-item .cal-info{min-width:0;flex:1;}
-.cal-item .cal-title{font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.cal-item .cal-sub{font-family:var(--font-label);font-size:10.5px;color:var(--text-sub);letter-spacing:.03em;}
-.cal-item .cal-del{flex:0 0 auto;border:1px solid var(--line);background:#fff;color:#B6C5D0;border-radius:8px;width:28px;height:28px;cursor:pointer;font-size:16px;}
-.cal-empty{font-size:12px;color:#B6C5D0;text-align:center;padding:12px 0;}
-.pin-row{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-sub);}
-.pin-row input{width:auto;}
-@media (max-width:600px){
-  .tpl-list{grid-template-columns:1fr 1fr;max-height:112px;}
-  .tpl-preview{margin:6px 0 8px;}
-  .cal-manage-list{max-height:130px;}
-  .cal-manage-modal{max-width:none;}
-}
-
 @media (max-width:600px){
   .template-modal{max-width:none;}
   .template-body{padding:14px 14px 6px;}
@@ -1163,7 +1102,7 @@ body{
         <!-- 오른쪽 -->
         <div class="col right">
           <section class="field dday">
-            <h3>D-Day<button class="add-btn ghost" id="openDdayManage">일정</button></h3>
+            <h3>D-Day</h3>
             <div class="val" id="fDday"></div>
           </section>
 
@@ -1260,33 +1199,6 @@ body{
   </div>
 </div>
 
-
-<!-- ===================== D-Day / 캘린더 일정 관리 모달 ===================== -->
-<div class="modal-back" id="ddayManageBack">
-  <div class="modal cal-manage-modal" role="dialog" aria-modal="true">
-    <div class="m-head">일정 관리</div>
-    <div class="m-body">
-      <div class="cal-manage-note">상단 D-Day에는 직접 별표 표시한 굵직한 일정만 표시됩니다. 아래 목록은 7일 이내 캘린더 일정이며, 할일/템플릿 공부 블록은 제외됩니다.</div>
-      <div class="cal-section">
-        <h4>대표 D-Day</h4>
-        <div class="cal-manage-list" id="pinnedDdayList"></div>
-      </div>
-      <div class="cal-section">
-        <h4>7일 이내 일정</h4>
-        <div class="cal-manage-list" id="upcomingDdayList"></div>
-      </div>
-      <div class="cal-section">
-        <h4>전체 캘린더 일정</h4>
-        <div class="cal-manage-list" id="allCalendarList"></div>
-      </div>
-    </div>
-    <div class="m-actions">
-      <button class="btn-cancel" id="ddayAddEvent">+ 일정 추가</button>
-      <button class="btn-cancel" id="ddayManageClose">닫기</button>
-    </div>
-  </div>
-</div>
-
 <!-- ===================== 메모 입력 모달 ===================== -->
 <div class="modal-back" id="memoBack">
   <div class="modal" role="dialog" aria-modal="true">
@@ -1364,9 +1276,6 @@ body{
       <div class="m-field">
         <label>메모 (선택)</label>
         <input type="text" id="mMemo" placeholder="간단한 메모" />
-      </div>
-      <div class="m-field">
-        <label class="pin-row"><input type="checkbox" id="mPinDday" /> D-Day 상단에 표시</label>
       </div>
     </div>
     <div class="m-actions">
@@ -1454,13 +1363,6 @@ const LocalStorageAdapter = {
   },
   setTemplates(arr){
     try { localStorage.setItem("planner:templates", JSON.stringify(arr)); } catch(e){}
-  },
-  getPinnedDday(){
-    try { return JSON.parse(localStorage.getItem("planner:pinnedDday") || "[]"); }
-    catch(e){ return []; }
-  },
-  setPinnedDday(arr){
-    try { localStorage.setItem("planner:pinnedDday", JSON.stringify(arr)); } catch(e){}
   }
 };
 
@@ -1478,8 +1380,6 @@ const CloudSyncAdapter = {
   async setTypeMap(map){ /* TODO */ },
   async getTemplates(){ /* TODO */ return null; },
   async setTemplates(arr){ /* TODO */ },
-  async getPinnedDday(){ /* TODO */ return []; },
-  async setPinnedDday(arr){ /* TODO */ },
   async fetchEvents(){ /* TODO: 원격 events 컬렉션 읽기 */ return []; }
 };
 
@@ -1503,7 +1403,6 @@ let todoMeta = {};                            // { todoId: {start,end,tag} }
 
 let studyTemplates = [];
 let selectedTemplateId = null;
-let pinnedDdayIds = [];
 
 const DEFAULT_TEMPLATES = [
   { id:'tpl-standard', name:'표준형', blocks:[
@@ -1613,58 +1512,6 @@ function templateTagOptions(selected){
   const set = new Set(subjectTags.map(t => t.name));
   ['수학','물리','화학','현강','종합','정리','휴식','수학/물리','기타'].forEach(x => set.add(x));
   return Array.from(set).map(name => `<option value="${escapeHtml(name)}" ${name===selected?'selected':''}>${escapeHtml(name)}</option>`).join('');
-}
-
-
-function loadPinnedDday(){
-  pinnedDdayIds = (Storage.getPinnedDday && Storage.getPinnedDday()) || [];
-}
-function savePinnedDday(sync){
-  pinnedDdayIds = Array.from(new Set(pinnedDdayIds.filter(Boolean)));
-  if(Storage.setPinnedDday) Storage.setPinnedDday(pinnedDdayIds);
-  if(sync !== false) scheduleNotesSave();
-}
-function isCalendarEvent(e){ return e && e.type !== 'todo'; }
-function addDays(dateStr, days){
-  const d = parseDate(dateStr); d.setDate(d.getDate()+days); return fmt(d);
-}
-function calendarEventsFrom(date, days){
-  const end = addDays(date, days);
-  return EventsStore.getAll()
-    .filter(isCalendarEvent)
-    .filter(e => e.date && e.date >= date && e.date <= end)
-    .sort((a,b)=> a.date === b.date ? ((a.startTime||'99:99').localeCompare(b.startTime||'99:99')) : a.date.localeCompare(b.date));
-}
-function pinnedDdayEvents(fromDate){
-  const all = EventsStore.getAll().filter(isCalendarEvent);
-  return pinnedDdayIds
-    .map(id => all.find(e => e.id === id))
-    .filter(e => e && e.date >= fromDate)
-    .sort((a,b)=> a.date === b.date ? ((a.startTime||'99:99').localeCompare(b.startTime||'99:99')) : a.date.localeCompare(b.date));
-}
-function togglePinnedDday(id){
-  if(!id) return;
-  if(pinnedDdayIds.includes(id)) pinnedDdayIds = pinnedDdayIds.filter(x=>x!==id);
-  else pinnedDdayIds.push(id);
-  savePinnedDday();
-  renderPlannerPage(AppState.selectedDate);
-  renderCalendarManager();
-}
-function addPinnedDday(id){
-  if(id && !pinnedDdayIds.includes(id)){ pinnedDdayIds.push(id); savePinnedDday(); }
-}
-function removePinnedDday(id){
-  if(pinnedDdayIds.includes(id)){ pinnedDdayIds = pinnedDdayIds.filter(x=>x!==id); savePinnedDday(); }
-}
-function eventSubText(e, baseDate){
-  const d = ddayLabel(calculateDday(e.date, baseDate || AppState.selectedDate));
-  const time = e.startTime && e.endTime ? ` · ${e.startTime}~${e.endTime}` : '';
-  return `${d} · ${e.date}${time}`;
-}
-function ddayListItem(e, baseDate){
-  return `<li><span class="dl-tag">${ddayLabel(calculateDday(e.date, baseDate))}</span>`
-    + `<span class="dd-dot" style="background:${TYPE_COLOR[e.type]||TYPE_COLOR.etc}"></span>`
-    + `<span class="up-title">${escapeHtml(displayTitle(e))}</span></li>`;
 }
 
 function tagColor(name){
@@ -2080,7 +1927,6 @@ function collectLocalNotes(){
   o._todoMeta = todoMeta;            // 할일 시간·태그 (두 기기 공유)
   o._tags = subjectTags;             // 과목 태그 목록·색
   o._templates = studyTemplates;       // 시간표 템플릿
-  o._pinnedDday = pinnedDdayIds;       // 대표 D-Day 일정
   return o;
 }
 function applyNotes(obj){
@@ -2098,11 +1944,6 @@ function applyNotes(obj){
         studyTemplates = obj._templates;
         Storage.setTemplates(studyTemplates);
         selectedTemplateId = studyTemplates[0] ? studyTemplates[0].id : null;
-      }
-    } else if(key === '_pinnedDday'){
-      if(Array.isArray(obj._pinnedDday)){
-        pinnedDdayIds = obj._pinnedDday;
-        Storage.setPinnedDday(pinnedDdayIds);
       }
     } else if(key.indexOf('_') !== 0 && obj[key]){
       localStorage.setItem('planner:note:'+key, obj[key]);
@@ -2288,26 +2129,23 @@ function renderPlannerPage(date){
 }
 
 function renderDday(date){
+  const upcoming = getUpcomingEvents(date, ['exam','assignment','present','etc']);
   const el = document.getElementById('fDday');
-  const pinned = pinnedDdayEvents(date).slice(0, 3);
-  const upcoming7 = calendarEventsFrom(date, 7);
-  let html = '';
+  if(!upcoming.length){ el.innerHTML = `<div class="val empty-line"></div>`; return; }
 
-  if(pinned.length){
-    html += pinned.map(e => `<div class="dday-main pinned">`
-      + `<span class="dday-tag">${ddayLabel(calculateDday(e.date, date))}</span>`
+  const head = upcoming[0];
+  const rest = upcoming.slice(1);     // 나머지 전부 (영역은 스크롤로 고정)
+  let html = `<div class="dday-main">
+      <span class="dday-tag">${ddayLabel(calculateDday(head.date, date))}</span>
+      <span class="dd-dot" style="background:${TYPE_COLOR[head.type]||TYPE_COLOR.etc}"></span>
+      <span class="dday-title">${displayTitle(head)}</span>
+    </div>`;
+  if(rest.length){
+    html += `<ul class="dday-list">` + rest.map(e =>
+      `<li><span class="dl-tag">${ddayLabel(calculateDday(e.date, date))}</span>`
       + `<span class="dd-dot" style="background:${TYPE_COLOR[e.type]||TYPE_COLOR.etc}"></span>`
-      + `<span class="dday-title">${escapeHtml(displayTitle(e))}</span>`
-      + `</div>`).join('');
-  } else {
-    html += `<div class="dday-empty">대표 일정 없음</div>`;
-  }
-
-  html += `<div class="dday-section-label">7일 이내 일정</div>`;
-  if(upcoming7.length){
-    html += `<ul class="dday-list">` + upcoming7.map(e => ddayListItem(e, date)).join('') + `</ul>`;
-  } else {
-    html += `<div class="dday-empty">다가오는 일정 없음</div>`;
+      + `${displayTitle(e)}</li>`
+    ).join('') + `</ul>`;
   }
   el.innerHTML = html;
 }
@@ -2470,14 +2308,12 @@ function renderTimeTable(events){
     const s = minutesSince6(e.startTime);
     const en = minutesSince6(e.endTime);
     if(s == null || en == null || en <= s) return;
-    const duration = en - s;
-    if(duration < 30) return;          // V2: 30분 미만 블록은 Task에만 표시해 잘림 방지
     const top = (s/SPAN)*100;
-    const hgt = (duration/SPAN)*100;
+    const hgt = ((en-s)/SPAN)*100;
     const isTodo = e.type === 'todo';
     const bg = isTodo ? `background:${tagColor(e.tag||'기타')};` : '';
     const cls = isTodo ? 'todo' : e.type;
-    const label = isTodo && e.tag ? `${e.tag} · ${displayTitle(e)}` : displayTitle(e);
+    const label = displayTitle(e); // V2.1: Time Table은 제목만 표시해 '수학 · 수학' 중복 방지
     blocks += `<div class="tt-block ${cls}${e.done?' done':''}" style="top:${top}%;height:${hgt}%;${bg}">
         <div class="b-title">${label}</div>
         <div class="b-time">${e.startTime}–${e.endTime}</div>
@@ -2599,8 +2435,6 @@ function openModal(){
   document.getElementById('mStart').value = '';
   document.getElementById('mEnd').value = '';
   document.getElementById('mMemo').value = '';
-  const pin = document.getElementById('mPinDday');
-  if(pin) pin.checked = false;
   document.getElementById('mCustomWrap').style.display = 'none';
   modalBack.classList.add('open');
   setTimeout(()=>document.getElementById('mTitle').focus(), 50);
@@ -2625,7 +2459,6 @@ document.getElementById('saveAdd').addEventListener('click', ()=>{
   const start = document.getElementById('mStart').value;
   const end   = document.getElementById('mEnd').value;
   const memo  = document.getElementById('mMemo').value.trim();
-  const pinDday = !!(document.getElementById('mPinDday') && document.getElementById('mPinDday').checked);
 
   const evt = { title, type, date, source:"local" };
   if(type === 'custom'){
@@ -2643,12 +2476,11 @@ document.getElementById('saveAdd').addEventListener('click', ()=>{
     // 연결됨 → 구글 캘린더에 직접 추가 후 다시 동기화 (중복 방지: 로컬 사본 안 만듦)
     setSyncStatus('구글에 추가 중…');
     gcalInsertEvent(evt)
-      .then(created=>{ if(pinDday && created && created.id) addPinnedDday(created.id); return syncFromGoogle(); })
-      .catch(err=>{ console.error(err); setSyncStatus('구글 추가 실패 — 로컬로 저장', true); const created=EventsStore.addEvent(evt); if(pinDday) addPinnedDday(created.id); renderCalendar(); renderPlannerPage(AppState.selectedDate); });
+      .then(()=> syncFromGoogle())
+      .catch(err=>{ console.error(err); setSyncStatus('구글 추가 실패 — 로컬로 저장', true); EventsStore.addEvent(evt); renderCalendar(); renderPlannerPage(AppState.selectedDate); });
   } else {
     // 미연결 → 로컬 저장
-    const created = EventsStore.addEvent(evt);
-    if(pinDday) addPinnedDday(created.id);
+    EventsStore.addEvent(evt);
     renderCalendar();
     renderPlannerPage(AppState.selectedDate);
   }
@@ -2803,12 +2635,9 @@ function closeTemplateModal(){ templateBack.classList.remove('open'); }
 function renderTemplateModal(){
   const list = document.getElementById('tplList');
   const tpl = currentTemplate();
-  list.innerHTML = studyTemplates.map(t => {
-    const counts = {};
-    (t.blocks||[]).forEach(b => { const k=b.tag||b.title||'기타'; if(k!=='휴식') counts[k]=(counts[k]||0)+1; });
-    const summary = Object.keys(counts).slice(0,3).map(k=>`${k} ${counts[k]}`).join(' · ') || '시간 블록 없음';
-    return `<button class="tpl-pill ${t.id===selectedTemplateId?'active':''}" data-id="${escapeHtml(t.id)}">${escapeHtml(t.name)}<small>${escapeHtml(summary)}</small></button>`;
-  }).join('');
+  list.innerHTML = studyTemplates.map(t =>
+    `<button class="tpl-pill ${t.id===selectedTemplateId?'active':''}" data-id="${escapeHtml(t.id)}">${escapeHtml(t.name)}</button>`
+  ).join('');
   list.querySelectorAll('.tpl-pill').forEach(btn=>{
     btn.addEventListener('click', ()=>{ selectedTemplateId = btn.dataset.id; renderTemplateModal(); });
   });
@@ -2818,21 +2647,16 @@ function renderTemplateModal(){
   nameInput.value = tpl.name || '';
   const blocks = document.getElementById('tplBlocks');
   const sorted = sortTemplateBlocks(tpl.blocks).map(b => tpl.blocks.indexOf(b));
-  const preview = sortTemplateBlocks(tpl.blocks).slice(0,10).map(b=>{
-    const tg = b.tag || b.title || '기타';
-    return `<span class="tpl-preview-chip"><i style="background:${tagColor(tg)}"></i>${escapeHtml(b.start||'--:--')} ${escapeHtml(b.title||'')}</span>`;
-  }).join('');
-  const previewHtml = preview ? `<div class="tpl-preview">${preview}</div>` : '';
-  blocks.innerHTML = previewHtml + (sorted.map(idx => {
+  blocks.innerHTML = sorted.map(idx => {
     const b = tpl.blocks[idx];
-    return `<div class="tpl-block-row" data-idx="${idx}" data-tag="${escapeHtml(b.tag || b.title || '기타')}">`
+    return `<div class="tpl-block-row" data-idx="${idx}">`
       + `<input type="time" class="tpl-start" value="${escapeHtml(b.start||'')}">`
       + `<input type="time" class="tpl-end" value="${escapeHtml(b.end||'')}">`
       + `<input type="text" class="tpl-title" value="${escapeHtml(b.title||'')}">`
       + `<select class="tpl-tag">${templateTagOptions(b.tag || b.title || '기타')}</select>`
       + `<button type="button" class="tpl-block-del" title="시간 블록 삭제">×</button>`
       + `</div>`;
-  }).join('') || '<div class="tpl-empty">시간 블록이 없습니다. + 시간 블록을 눌러 추가하세요.</div>');
+  }).join('') || '<div class="tpl-empty">시간 블록이 없습니다. + 시간 블록을 눌러 추가하세요.</div>';
   blocks.querySelectorAll('.tpl-block-row').forEach(row=>{
     const idx = Number(row.dataset.idx);
     const b = tpl.blocks[idx];
@@ -2925,63 +2749,6 @@ document.getElementById('tplClose').addEventListener('click', closeTemplateModal
 templateBack.addEventListener('click', (e)=>{ if(e.target === templateBack) closeTemplateModal(); });
 document.getElementById('openTemplateLs').addEventListener('click', openTemplateModal);
 document.getElementById('fabTemplate').addEventListener('click', openTemplateModal);
-
-
-/* ---------- D-Day / 캘린더 일정 관리 ---------- */
-const ddayManageBack = document.getElementById('ddayManageBack');
-function openDdayManager(){ renderCalendarManager(); ddayManageBack.classList.add('open'); }
-function closeDdayManager(){ ddayManageBack.classList.remove('open'); }
-function calendarManageItem(e){
-  const pinned = pinnedDdayIds.includes(e.id);
-  return `<div class="cal-item" data-id="${escapeHtml(e.id)}">`
-    + `<button type="button" class="cal-pin ${pinned?'on':''}" title="D-Day 상단 표시">${pinned?'★':'☆'}</button>`
-    + `<span class="dd-dot" style="background:${TYPE_COLOR[e.type]||TYPE_COLOR.etc}"></span>`
-    + `<div class="cal-info"><div class="cal-title">${escapeHtml(displayTitle(e))}</div><div class="cal-sub">${escapeHtml(eventSubText(e, AppState.selectedDate))}</div></div>`
-    + `<button type="button" class="cal-del" title="삭제">×</button>`
-    + `</div>`;
-}
-function wireCalendarList(root){
-  root.querySelectorAll('.cal-item').forEach(row=>{
-    const id = row.dataset.id;
-    const e = EventsStore.getAll().find(x=>x.id===id);
-    const pin = row.querySelector('.cal-pin');
-    const del = row.querySelector('.cal-del');
-    if(pin) pin.addEventListener('click', ()=> togglePinnedDday(id));
-    if(del) del.addEventListener('click', ()=> deleteCalendarManagedEvent(e));
-  });
-}
-function renderCalendarManager(){
-  const pinned = pinnedDdayEvents(AppState.selectedDate);
-  const upcoming = calendarEventsFrom(AppState.selectedDate, 7);
-  const all = EventsStore.getAll().filter(isCalendarEvent)
-    .filter(e => e.date >= AppState.selectedDate)
-    .sort((a,b)=> a.date === b.date ? ((a.startTime||'99:99').localeCompare(b.startTime||'99:99')) : a.date.localeCompare(b.date))
-    .slice(0, 60);
-  const pinEl = document.getElementById('pinnedDdayList');
-  const upEl = document.getElementById('upcomingDdayList');
-  const allEl = document.getElementById('allCalendarList');
-  pinEl.innerHTML = pinned.length ? pinned.map(calendarManageItem).join('') : '<div class="cal-empty">별표 표시한 대표 일정이 없습니다.</div>';
-  upEl.innerHTML = upcoming.length ? upcoming.map(calendarManageItem).join('') : '<div class="cal-empty">7일 이내 캘린더 일정이 없습니다.</div>';
-  allEl.innerHTML = all.length ? all.map(calendarManageItem).join('') : '<div class="cal-empty">등록된 캘린더 일정이 없습니다.</div>';
-  [pinEl, upEl, allEl].forEach(wireCalendarList);
-}
-function deleteCalendarManagedEvent(e){
-  if(!e) return;
-  if(!confirm(`'${displayTitle(e)}' 일정을 삭제할까요?`)) return;
-  removePinnedDday(e.id);
-  if(e.source === 'google-calendar' && isTokenValid()){
-    gcalDeleteEvent(e.id).then(()=> syncFromGoogle()).then(()=>renderCalendarManager()).catch(err=>{ console.error(err); setSyncStatus('구글 일정 삭제 실패', true); });
-  } else {
-    EventsStore.removeEvent(e.id);
-    renderCalendar();
-    renderPlannerPage(AppState.selectedDate);
-    renderCalendarManager();
-  }
-}
-document.getElementById('openDdayManage').addEventListener('click', openDdayManager);
-document.getElementById('ddayManageClose').addEventListener('click', closeDdayManager);
-ddayManageBack.addEventListener('click', (e)=>{ if(e.target === ddayManageBack) closeDdayManager(); });
-document.getElementById('ddayAddEvent').addEventListener('click', ()=>{ closeDdayManager(); openModal(); });
 
 /* ---------- 구글 연동 동작 ---------- */
 function setSyncStatus(msg, isErr){
@@ -3247,7 +3014,6 @@ function renderStats(){
   const savedTags = Storage.getSubjectTags();
   if(savedTags && savedTags.length) subjectTags = savedTags;
   loadTemplates();
-  loadPinnedDday();
   EventsStore.reattachTodoMeta();
   const t = parseDate(todayStr());
   AppState.view = { year: t.getFullYear(), month: t.getMonth() };

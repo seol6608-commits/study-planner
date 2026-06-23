@@ -1,11 +1,12 @@
 /* Study Planner 서비스워커 — 홈화면 설치 + 오프라인 캐시 */
-const CACHE = 'study-planner-v2-template-prototype';
+const CACHE = 'study-planner-v2-1-label-fix';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './app.js'
 ];
 
 // 설치: 핵심 파일 캐시

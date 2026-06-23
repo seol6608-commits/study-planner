@@ -1098,7 +1098,7 @@ function renderTimeTable(events){
     const isTodo = e.type === 'todo';
     const bg = isTodo ? `background:${tagColor(e.tag||'기타')};` : '';
     const cls = isTodo ? 'todo' : e.type;
-    const label = isTodo && e.tag ? `${e.tag} · ${displayTitle(e)}` : displayTitle(e);
+    const label = displayTitle(e); // V2.1: Time Table은 제목만 표시해 '수학 · 수학' 중복 방지
     blocks += `<div class="tt-block ${cls}${e.done?' done':''}" style="top:${top}%;height:${hgt}%;${bg}">
         <div class="b-title">${label}</div>
         <div class="b-time">${e.startTime}–${e.endTime}</div>
