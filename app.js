@@ -2078,6 +2078,8 @@ window.addEventListener('touchend', endPDrag);
 let statsRange = 'week';   // 'week' | 'month'
 function studyAggregate(range){
   // 기준: 선택일이 속한 주(월~일) 또는 달
+  // V2.8.6부터 Study Time은 실제 타이머 기록만 합산한다.
+  // Task 체크는 완료/진행률에만 사용하고 공부시간 통계에는 더하지 않는다.
   const base = parseDate(AppState.selectedDate);
   let from, to;
   if(range === "month"){
@@ -2089,28 +2091,16 @@ function studyAggregate(range){
     to   = new Date(from); to.setDate(from.getDate()+6);
   }
   const fromS = fmt(from), toS = fmt(to);
-  // 기간 라벨
   let label;
   if(range === "month"){
     label = (base.getMonth()+1) + "월";
   } else {
-    // 그 주 목요일이 속한 달 기준 주차(ISO식 근사): 해당 달에서 몇 번째 주인지
-    const thu = new Date(from); thu.setDate(from.getDate()+3);   // 주의 목요일
+    const thu = new Date(from); thu.setDate(from.getDate()+3);
     const firstThu = new Date(thu.getFullYear(), thu.getMonth(), 1);
     const wk = Math.ceil((thu.getDate() + ((firstThu.getDay()+6)%7)) / 7);
     label = (thu.getMonth()+1) + "월 " + wk + "주차";
   }
-  const all = EventsStore.getAll();
   const tagMin = {}; let total = 0;
-  all.forEach(e=>{
-    if(e.type==="todo" && e.done && e.startTime && e.endTime && e.date >= fromS && e.date <= toS){
-      const tg = e.tag || "기타";
-      if(isNonStudyBlock(e)) return;
-      const d = toMin(e.endTime) - toMin(e.startTime);
-      if(d>0){ tagMin[tg]=(tagMin[tg]||0)+d; total+=d; }
-    }
-  });
-  // 집중 타이머 기록도 Study Time 통계에 포함
   timerLogs.forEach(log=>{
     if(log.date >= fromS && log.date <= toS){
       const tg = log.subject || "기타";
@@ -2120,6 +2110,51 @@ function studyAggregate(range){
   });
   return { tagMin, total, fromS, toS, label };
 }
+
+function timerLogItemsForSelectedDate(){
+  const date = AppState.selectedDate;
+  return timerLogs
+    .filter(log => log.date === date)
+    .slice()
+    .sort((a,b)=>(a.startAt||0)-(b.startAt||0));
+}
+function deleteTimerLog(id){
+  if(!id) return;
+  if(!confirm('이 타이머 기록을 삭제할까요?')) return;
+  timerLogs = timerLogs.filter(log => log.id !== id);
+  saveTimerLogs();
+  renderStats();
+}
+function renderTimerLogSection(){
+  const logs = timerLogItemsForSelectedDate();
+  const dateLabel = AppState.selectedDate ? AppState.selectedDate.slice(5).replace('-', '.') : '';
+  let body = '';
+  if(!logs.length){
+    body = `<div class="tl-empty">선택한 날짜에 기록된<br>타이머 기록이 없어요.<br><br>집중모드에서 종료하고 기록하면<br>여기에 표시됩니다.</div>`;
+  } else {
+    body = logs.map((log, idx)=>{
+      if(!log.id){ log.id = 'timer-legacy-' + (log.startAt || Date.now()) + '-' + idx; }
+      const subject = log.subject || '기타';
+      const start = log.startAt ? fmtHMFromDate(log.startAt) : '--:--';
+      const end = log.endAt ? fmtHMFromDate(log.endAt) : '--:--';
+      const dur = fmtDurKrFromSec(log.durationSec || 0);
+      const memo = log.memo ? ` · ${escapeHtml(log.memo)}` : '';
+      return `<div class="tl-item" data-id="${escapeHtml(log.id)}">`
+        + `<span class="tl-dot" style="background:${tagColor(subject)}"></span>`
+        + `<div class="tl-main">`
+        + `<div class="tl-top"><span class="tl-subject">${escapeHtml(subject)}</span><span class="tl-duration">${escapeHtml(dur)}</span></div>`
+        + `<div class="tl-time">${escapeHtml(start)}~${escapeHtml(end)}${memo}</div>`
+        + `</div>`
+        + `<button type="button" class="tl-del" data-id="${escapeHtml(log.id)}" aria-label="타이머 기록 삭제">×</button>`
+        + `</div>`;
+    }).join('');
+    saveTimerLogs();
+  }
+  return `<div class="timer-log-section">`
+    + `<div class="tl-head"><span class="tl-title">Timer Log</span><span class="tl-date">${escapeHtml(dateLabel)}</span></div>`
+    + `<div class="tl-list">${body}</div>`
+    + `</div>`;
+}
 function renderStats(){
   const area = document.getElementById("statsArea");
   if(!area) return;
@@ -2127,13 +2162,13 @@ function renderStats(){
   const fmtDur = (m)=>{ const h=Math.floor(m/60), mm=m%60; return `${h?h+"h":""}${mm?mm+"m":(h?"":"0m")}`; };
   let body;
   if(total <= 0){
-    body = `<div class="st-empty">이 기간에 기록된<br>공부시간이 없어요.<br><br>할일 시간을 넣거나<br>집중 타이머를 기록하면<br>태그별로 합산돼요.</div>`;
+    body = `<div class="st-empty">이 기간에 기록된<br>실제 공부시간이 없어요.<br><br>Task 체크 시간은 제외되고<br>타이머 기록만 합산됩니다.</div>`;
   } else {
     const max = Math.max.apply(null, Object.values(tagMin));
     const rows = Object.keys(tagMin).sort((a,b)=>tagMin[b]-tagMin[a]).map(tg=>{
       const pct = Math.round((tagMin[tg]/max)*100);
       return `<div class="st-bar-row">`
-        + `<div class="st-bar-top"><span>${tg}</span><span>${fmtDur(tagMin[tg])}</span></div>`
+        + `<div class="st-bar-top"><span>${escapeHtml(tg)}</span><span>${fmtDur(tagMin[tg])}</span></div>`
         + `<div class="st-bar-track"><div class="st-bar-fill" style="width:${pct}%;background:${tagColor(tg)}"></div></div>`
         + `</div>`;
     }).join("");
@@ -2146,9 +2181,13 @@ function renderStats(){
     + `<button data-r="week" class="${statsRange==="week"?"active":""}">주간</button>`
     + `<button data-r="month" class="${statsRange==="month"?"active":""}">월간</button>`
     + `</span></div>`
-    + `<div class="st-body">${body}</div>`;
+    + `<div class="st-body">${body}</div>`
+    + renderTimerLogSection();
   area.querySelectorAll(".st-toggle button").forEach(b=>{
     b.addEventListener("click", ()=>{ statsRange = b.dataset.r; renderStats(); });
+  });
+  area.querySelectorAll(".tl-del").forEach(btn=>{
+    btn.addEventListener("click", ()=>deleteTimerLog(btn.dataset.id));
   });
 }
 
