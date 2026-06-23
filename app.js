@@ -1946,18 +1946,56 @@ document.getElementById('gcalRefresh').addEventListener('click', ()=>{
 /* ============================================================================
  *  포스트잇 (가로 전용 · 로컬 저장, 동기화 X)
  * ========================================================================== */
-const POSTIT_COLORS = ['#FDE68A','#BFE3F2','#FBCFE8','#C8E6C9','#E9E4D8'];
+const POSTIT_COLORS = ['#E8D27C','#AFCFDC','#E2B5C8','#B8D3BA','#D8D0C0'];
+const POSTIT_COLOR_MAP = {
+  '#FDE68A':'#E8D27C',
+  '#BFE3F2':'#AFCFDC',
+  '#FBCFE8':'#E2B5C8',
+  '#C8E6C9':'#B8D3BA',
+  '#E9E4D8':'#D8D0C0'
+};
+const POSTIT_SIZE_ORDER = ['s','m','l'];
+function normalizePostit(p){
+  if(!p) return p;
+  if(POSTIT_COLOR_MAP[p.color]) p.color = POSTIT_COLOR_MAP[p.color];
+  if(!POSTIT_SIZE_ORDER.includes(p.size)) p.size = 'm';
+  return p;
+}
+function postitSizeClass(size){
+  return 'size-' + (POSTIT_SIZE_ORDER.includes(size) ? size : 'm');
+}
+function clampPostitToArea(card, p, area){
+  if(!card || !p || !area) return;
+  let nx = Math.max(4, Math.min(card.offsetLeft, area.clientWidth - card.offsetWidth - 4));
+  let ny = Math.max(40, Math.min(card.offsetTop, area.clientHeight - card.offsetHeight - 4));
+  card.style.left = nx + 'px';
+  card.style.top = ny + 'px';
+  p.x = nx; p.y = ny;
+}
+function changePostitSize(p, delta, card, area){
+  let idx = POSTIT_SIZE_ORDER.indexOf(p.size || 'm');
+  if(idx < 0) idx = 1;
+  idx = Math.max(0, Math.min(POSTIT_SIZE_ORDER.length - 1, idx + delta));
+  p.size = POSTIT_SIZE_ORDER[idx];
+  if(card){
+    card.classList.remove('size-s','size-m','size-l');
+    card.classList.add(postitSizeClass(p.size));
+    clampPostitToArea(card, p, area || document.getElementById('postitArea'));
+  }
+  savePostits();
+}
 let postits = [];
 let pdrag = null;
-function loadPostits(){ try{ postits = JSON.parse(localStorage.getItem('planner:postits')||'[]'); }catch(e){ postits=[]; } }
+function loadPostits(){ try{ postits = JSON.parse(localStorage.getItem('planner:postits')||'[]').map(normalizePostit); }catch(e){ postits=[]; } }
 function savePostits(){ try{ localStorage.setItem('planner:postits', JSON.stringify(postits)); }catch(e){} }
 function renderPostits(){
   const area = document.getElementById('postitArea');
   if(!area) return;
   area.innerHTML = '<div class="pa-head"><span>Post-it</span><button class="add-btn" id="addPostit">+ 포스트잇</button></div>';
   postits.forEach(p=>{
+    normalizePostit(p);
     const card = document.createElement('div');
-    card.className = 'postit';
+    card.className = 'postit ' + postitSizeClass(p.size);
     card.style.background = p.color;
     card.style.left = (p.x||16)+'px';
     card.style.top  = (p.y||46)+'px';
@@ -1973,10 +2011,18 @@ function renderPostits(){
       d.addEventListener('click', (e)=>{ e.stopPropagation(); p.color = c; card.style.background = c; savePostits(); });
       colors.appendChild(d);
     });
+    const sizeControls = document.createElement('div'); sizeControls.className = 'size-controls';
+    const shrink = document.createElement('button'); shrink.type = 'button'; shrink.className = 'size-btn'; shrink.textContent = '−'; shrink.title = '포스트잇 축소';
+    const grow = document.createElement('button'); grow.type = 'button'; grow.className = 'size-btn'; grow.textContent = '+'; grow.title = '포스트잇 확대';
+    [shrink, grow].forEach(btn => ['mousedown','touchstart'].forEach(ev => btn.addEventListener(ev, x=>x.stopPropagation())));
+    shrink.addEventListener('click', (e)=>{ e.stopPropagation(); changePostitSize(p, -1, card, area); });
+    grow.addEventListener('click', (e)=>{ e.stopPropagation(); changePostitSize(p, 1, card, area); });
+    sizeControls.appendChild(shrink); sizeControls.appendChild(grow);
+
     const del = document.createElement('span'); del.className = 'del'; del.textContent = '×';
     ['mousedown','touchstart'].forEach(ev => del.addEventListener(ev, x=>x.stopPropagation()));
     del.addEventListener('click', (e)=>{ e.stopPropagation(); postits = postits.filter(x=>x.id!==p.id); savePostits(); renderPostits(); });
-    pin.appendChild(colors); pin.appendChild(del);
+    pin.appendChild(colors); pin.appendChild(sizeControls); pin.appendChild(del);
 
     const ta = document.createElement('textarea'); ta.value = p.text||''; ta.placeholder = '메모...';
     ta.addEventListener('input', ()=>{ p.text = ta.value; savePostits(); });
@@ -1991,7 +2037,7 @@ function renderPostits(){
 }
 function addPostit(){
   const n = postits.length;
-  postits.push({ id:'p-'+Date.now(), text:'', color:POSTIT_COLORS[n%POSTIT_COLORS.length], x:16+(n%3)*20, y:48+(n%4)*16 });
+  postits.push({ id:'p-'+Date.now(), text:'', color:POSTIT_COLORS[n%POSTIT_COLORS.length], size:'m', x:16+(n%3)*20, y:48+(n%4)*16 });
   savePostits(); renderPostits();
   const tas = document.querySelectorAll('#postitArea .postit textarea');
   if(tas.length) tas[tas.length-1].focus();

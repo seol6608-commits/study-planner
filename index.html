@@ -637,11 +637,15 @@ body{
 }
 .pa-head .add-btn{pointer-events:auto;}
 .postit{
-  position:absolute; width:168px; min-height:124px;
+  position:absolute;
+  width:210px; min-height:150px;
   border-radius:4px; padding:6px 9px 9px;
   box-shadow:0 7px 18px -9px rgba(38,55,70,.55);
   display:flex; flex-direction:column; gap:5px; z-index:1;
 }
+.postit.size-s{width:168px;min-height:124px;}
+.postit.size-m{width:210px;min-height:150px;}
+.postit.size-l{width:270px;min-height:200px;}
 .postit .grip{
   height:20px; margin:-2px -4px 3px; border-radius:4px 4px 0 0;
   display:flex; align-items:center; justify-content:center;
@@ -650,14 +654,29 @@ body{
   background:rgba(0,0,0,.06);
 }
 .postit .grip:active{cursor:grabbing;background:rgba(0,0,0,.1);}
-.postit .pin{height:18px; display:flex; gap:6px; align-items:center;}
-.postit .pin .colors{display:flex; gap:6px;}
+.postit .pin{min-height:22px; display:flex; gap:6px; align-items:center;}
+.postit .pin .colors{display:flex; gap:6px; flex:0 0 auto;}
 .postit .pin .cdot{width:16px;height:16px;border-radius:50%;cursor:pointer;border:1px solid rgba(0,0,0,.12);}
 .postit .pin .cdot:active{transform:scale(.88);}
-.postit .pin .del{margin-left:auto;cursor:pointer;color:rgba(0,0,0,.42);font-size:18px;line-height:1;padding:0 2px;}
+.postit .size-controls{
+  display:flex; gap:3px; margin-left:auto; align-items:center;
+}
+.postit .size-btn{
+  width:24px;height:22px;border-radius:7px;
+  border:1px solid rgba(0,0,0,.16);
+  background:rgba(255,255,255,.32);
+  color:rgba(0,0,0,.48);
+  font-family:var(--font-label);
+  font-size:14px;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;touch-action:manipulation;
+}
+.postit .size-btn:active{transform:translateY(1px);background:rgba(255,255,255,.48);}
+.postit .pin .del{cursor:pointer;color:rgba(0,0,0,.42);font-size:18px;line-height:1;padding:0 2px;}
 .postit textarea{
   flex:1; border:none; background:transparent; resize:none; outline:none;
   font-family:var(--font-ko); font-size:12.5px; color:#3a382f; line-height:1.45;
+  border-radius:6px;
 }
 /* 공부시간 통계 */
 .st-head{
@@ -1154,6 +1173,38 @@ body[data-theme="deep"] .theme-float-btn{
   color:var(--text);
   border-color:rgba(126,165,196,.48);
   box-shadow:0 12px 28px -18px rgba(0,0,0,.80);
+}
+
+
+/* V2.8.4 Post-it 보정
+   - 딥 테마에서 내부 검은 박스 제거
+   - 포스트잇은 톤다운 파스텔 메모지 느낌 유지 */
+body[data-theme="deep"] .postit{
+  box-shadow:0 10px 28px -15px rgba(0,0,0,.82);
+  filter:saturate(.82) brightness(.92);
+}
+body[data-theme="deep"] .postit textarea{
+  background:transparent !important;
+  color:#2F342F;
+  border:none;
+}
+body[data-theme="deep"] .postit .grip{
+  background:rgba(0,0,0,.055);
+  color:rgba(0,0,0,.34);
+}
+body[data-theme="deep"] .postit .grip:active{
+  background:rgba(0,0,0,.10);
+}
+body[data-theme="deep"] .postit .size-btn{
+  background:rgba(255,255,255,.28);
+  color:rgba(0,0,0,.50);
+  border-color:rgba(0,0,0,.16);
+}
+body[data-theme="deep"] .postit .pin .del{
+  color:rgba(0,0,0,.46);
+}
+body[data-theme="deep"] .postit .pin .cdot{
+  border-color:rgba(0,0,0,.18);
 }
 
 /* ============================================================
@@ -2122,7 +2173,7 @@ body.focus-lock{overflow:hidden;}
 </div>
 
 
-<script src="app.js?v=2.8.3"></script>
+<script src="app.js?v=2.8.4"></script>
 
 </body>
 </html>
