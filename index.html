@@ -829,6 +829,218 @@ body{
   .del-hint{display:none;}
 }
 
+
+/* ============================================================
+   V2.8 Focus Timer — 아이패드/넓은 화면 전용 진입 버튼 + 전체화면 집중모드
+   ============================================================ */
+.timer-ipad-only{display:inline-flex;align-items:center;}
+@media (max-width:980px){
+  .field.task > h3 .timer-ipad-only{display:inline-flex;}
+}
+@media (max-width:600px){
+  .field.task > h3 .timer-ipad-only{display:none !important;}
+}
+
+/* 타이머 시작 모달 */
+.timer-subject-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+}
+.timer-subject-chip{
+  border:1px solid var(--line);
+  background:#fff;
+  color:var(--text);
+  border-radius:12px;
+  padding:10px 6px;
+  font-family:var(--font-ko);
+  font-size:13px;
+  cursor:pointer;
+  transition:.15s;
+}
+.timer-subject-chip.active{
+  color:#fff;
+  border-color:var(--blue-main);
+  background:var(--blue-main);
+  box-shadow:0 6px 16px -12px rgba(38,55,70,.7);
+}
+.timer-goal-row{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.timer-goal-row label{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:8px 10px;
+  font-size:12px;
+  color:var(--text-sub);
+  cursor:pointer;
+}
+
+/* 집중모드 오버레이 */
+.focus-back{
+  position:fixed;
+  inset:0;
+  z-index:160;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:
+    radial-gradient(760px 460px at 50% 18%, rgba(94,135,168,.30), transparent 62%),
+    linear-gradient(135deg, rgba(18,31,43,.96), rgba(39,58,74,.95));
+  color:#fff;
+}
+.focus-back.open{display:flex;}
+.focus-card{
+  width:min(820px, 100%);
+  min-height:min(620px, calc(100dvh - 48px));
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:26px;
+  background:
+    radial-gradient(420px 300px at 50% 42%, rgba(94,135,168,.22), transparent 66%),
+    rgba(17,31,43,.52);
+  box-shadow:0 24px 70px -32px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.08);
+  backdrop-filter:blur(16px);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:space-between;
+  padding:42px 34px 28px;
+}
+.focus-kicker{
+  font-family:var(--font-label);
+  letter-spacing:.22em;
+  font-size:16px;
+  color:rgba(255,255,255,.80);
+  text-transform:uppercase;
+}
+.focus-subject{
+  margin-top:10px;
+  font-size:54px;
+  line-height:1.05;
+  color:#74A8E8;
+  font-weight:700;
+  text-shadow:0 0 28px rgba(116,168,232,.35);
+}
+.focus-ring{
+  --progress:0deg;
+  width:300px;
+  height:300px;
+  margin:20px 0 18px;
+  border-radius:50%;
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(18,31,43,.92) 0 58%, transparent 59%),
+    conic-gradient(from -90deg, #77AEEB var(--progress), rgba(117,160,194,.20) 0);
+  box-shadow:
+    0 0 44px rgba(116,168,232,.20),
+    inset 0 0 38px rgba(116,168,232,.10);
+}
+.focus-ring::before{
+  content:"";
+  position:absolute;
+  inset:17px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 0 26px rgba(116,168,232,.14);
+  animation:focusPulse 2.4s ease-in-out infinite;
+}
+.focus-ring::after{
+  content:"";
+  position:absolute;
+  inset:-8px;
+  border-radius:50%;
+  background:
+    repeating-conic-gradient(from -90deg, rgba(255,255,255,.22) 0 1deg, transparent 1deg 4deg);
+  opacity:.20;
+  mask:radial-gradient(circle, transparent 0 47%, #000 48% 51%, transparent 52%);
+  -webkit-mask:radial-gradient(circle, transparent 0 47%, #000 48% 51%, transparent 52%);
+  animation:focusSpin 18s linear infinite;
+}
+@keyframes focusPulse{
+  0%,100%{transform:scale(1);opacity:.72;}
+  50%{transform:scale(1.025);opacity:1;}
+}
+@keyframes focusSpin{to{transform:rotate(360deg);}}
+.focus-time{
+  position:relative;
+  z-index:2;
+  font-family:var(--font-label);
+  font-size:58px;
+  letter-spacing:.03em;
+  font-weight:500;
+  color:#fff;
+  text-shadow:0 3px 18px rgba(0,0,0,.36);
+}
+.focus-meta{
+  position:absolute;
+  left:50%;
+  top:59%;
+  transform:translateX(-50%);
+  z-index:2;
+  text-align:center;
+  font-size:14px;
+  line-height:1.7;
+  color:rgba(255,255,255,.74);
+  white-space:nowrap;
+}
+.focus-status{
+  min-height:22px;
+  font-size:13px;
+  color:rgba(255,255,255,.65);
+  margin-top:-4px;
+}
+.focus-actions{
+  width:100%;
+  display:flex;
+  justify-content:center;
+  gap:12px;
+  padding:18px 16px 0;
+  border-top:1px solid rgba(255,255,255,.10);
+}
+.focus-actions button{
+  border:1px solid rgba(255,255,255,.22);
+  background:rgba(255,255,255,.88);
+  color:#243746;
+  border-radius:12px;
+  padding:12px 24px;
+  min-width:136px;
+  cursor:pointer;
+  font-family:var(--font-ko);
+  font-size:14px;
+  box-shadow:0 10px 24px -18px rgba(0,0,0,.7);
+}
+.focus-actions button.primary{
+  background:#5E87A8;
+  color:#fff;
+  border-color:#5E87A8;
+}
+.focus-actions button.ghost{
+  background:rgba(255,255,255,.14);
+  color:rgba(255,255,255,.86);
+}
+body.focus-lock{overflow:hidden;}
+
+@media (max-width:600px){
+  .focus-back{padding:14px;}
+  .focus-card{min-height:calc(100dvh - 28px);padding:32px 20px 22px;border-radius:22px;}
+  .focus-kicker{font-size:12px;}
+  .focus-subject{font-size:42px;}
+  .focus-ring{width:250px;height:250px;}
+  .focus-time{font-size:42px;}
+  .focus-meta{font-size:12px;}
+  .focus-actions{flex-direction:column;}
+  .focus-actions button{width:100%;min-width:0;}
+}
+
 /* ============================================================
    일정 추가 모달
    ============================================================ */
@@ -1262,7 +1474,7 @@ body{
           </section>
 
           <section class="field task">
-            <h3>Task<span class="task-add-group"><button class="add-btn" id="openAddTodoLs">+ 할일</button><button class="add-btn ghost" id="openTemplateLs">템플릿</button></span></h3>
+            <h3>Task<span class="task-add-group"><button class="add-btn" id="openAddTodoLs">+ 할일</button><button class="add-btn ghost" id="openTemplateLs">템플릿</button><button class="add-btn ghost timer-ipad-only" id="openTimerLs">타이머</button></span></h3>
             <div class="task-body" id="fTaskTodo"></div>
           </section>
 
@@ -1503,6 +1715,70 @@ body{
     </div>
   </div>
 </div>
+
+
+<!-- ===================== 타이머 시작 모달 (아이패드/넓은 화면 진입) ===================== -->
+<div class="modal-back" id="timerBack">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="m-head">집중 타이머</div>
+    <div class="m-body">
+      <div class="m-field">
+        <label>과목</label>
+        <div class="timer-subject-grid" id="timerSubjectGrid">
+          <button type="button" class="timer-subject-chip active" data-subject="수학">수학</button>
+          <button type="button" class="timer-subject-chip" data-subject="물리">물리</button>
+          <button type="button" class="timer-subject-chip" data-subject="화학">화학</button>
+          <button type="button" class="timer-subject-chip" data-subject="종합">종합</button>
+          <button type="button" class="timer-subject-chip" data-subject="현강">현강</button>
+          <button type="button" class="timer-subject-chip" data-subject="기타">기타</button>
+        </div>
+      </div>
+      <div class="m-field">
+        <label>목표 시간</label>
+        <div class="timer-goal-row">
+          <label><input type="radio" name="timerGoal" value="90" checked> 90분</label>
+          <label><input type="radio" name="timerGoal" value="100"> 100분</label>
+          <label><input type="radio" name="timerGoal" value="0"> 자유</label>
+        </div>
+      </div>
+      <div class="m-field">
+        <label>메모 선택</label>
+        <input type="text" id="timerMemo" placeholder="예: 오늘 1회차" />
+      </div>
+    </div>
+    <div class="m-actions">
+      <button class="btn-cancel" id="timerCancel">취소</button>
+      <button class="btn-save" id="timerStart">집중 시작</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 집중모드 전체화면 ===================== -->
+<div class="focus-back" id="focusBack" aria-hidden="true">
+  <div class="focus-card" role="dialog" aria-modal="true">
+    <div>
+      <div class="focus-kicker">Focus Mode</div>
+      <div class="focus-subject" id="focusSubject">수학</div>
+    </div>
+
+    <div class="focus-ring" id="focusRing">
+      <div class="focus-time" id="focusTime">00:00:00</div>
+      <div class="focus-meta">
+        <div id="focusStart">시작 --:--</div>
+        <div id="focusToday">오늘 0분</div>
+      </div>
+    </div>
+
+    <div class="focus-status" id="focusStatus">집중 중</div>
+
+    <div class="focus-actions">
+      <button type="button" id="focusPause">일시정지</button>
+      <button type="button" class="primary" id="focusFinish">종료하고 기록</button>
+      <button type="button" class="ghost" id="focusBackPlanner">플래너로 돌아가기</button>
+    </div>
+  </div>
+</div>
+
 
 <script src="app.js"></script>
 

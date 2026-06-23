@@ -1,5 +1,5 @@
 /* Study Planner 서비스워커 — 홈화면 설치 + 오프라인 캐시 */
-const CACHE = 'study-planner-v2-7-dday-scroll-clip-fix';
+const CACHE = 'study-planner-v2-8-focus-timer';
 const ASSETS = [
   './',
   './index.html',

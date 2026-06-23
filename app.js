@@ -135,6 +135,10 @@ let studyTemplates = [];
 let selectedTemplateId = null;
 let pinnedDdayIds = [];
 let examRecords = [];
+let timerLogs = [];
+let activeFocusTimer = null;
+let focusTickHandle = null;
+let selectedTimerSubject = '수학';
 
 const DEFAULT_TEMPLATES = [
   { id:'tpl-standard', name:'표준형', blocks:[
@@ -257,6 +261,56 @@ function isNonStudyBlock(e){
     || title === '이동/휴식/식사' || title === '이동/휴식'
     || title === '정리';
 }
+
+function loadTimerLogs(){
+  try{ timerLogs = JSON.parse(localStorage.getItem('planner:timerLogs') || '[]'); }
+  catch(e){ timerLogs = []; }
+}
+function saveTimerLogs(){
+  try{ localStorage.setItem('planner:timerLogs', JSON.stringify(timerLogs)); }catch(e){}
+}
+function loadActiveFocusTimer(){
+  try{ activeFocusTimer = JSON.parse(localStorage.getItem('planner:activeFocusTimer') || 'null'); }
+  catch(e){ activeFocusTimer = null; }
+}
+function saveActiveFocusTimer(){
+  try{
+    if(activeFocusTimer) localStorage.setItem('planner:activeFocusTimer', JSON.stringify(activeFocusTimer));
+    else localStorage.removeItem('planner:activeFocusTimer');
+  }catch(e){}
+}
+function pad2(n){ return String(n).padStart(2,'0'); }
+function fmtHMS(sec){
+  sec = Math.max(0, Math.floor(sec || 0));
+  const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
+  return `${pad2(h)}:${pad2(m)}:${pad2(s)}`;
+}
+function fmtHMFromDate(ms){
+  const d = new Date(ms);
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+function fmtDurKrFromSec(sec){
+  const mins = Math.max(0, Math.round((sec || 0)/60));
+  const h = Math.floor(mins/60), m = mins%60;
+  if(h && m) return `${h}시간 ${m}분`;
+  if(h) return `${h}시간`;
+  return `${m}분`;
+}
+function currentFocusElapsedSec(){
+  if(!activeFocusTimer) return 0;
+  let sec = activeFocusTimer.accumSec || 0;
+  if(activeFocusTimer.running && activeFocusTimer.lastStartAt){
+    sec += Math.floor((Date.now() - activeFocusTimer.lastStartAt)/1000);
+  }
+  return Math.max(0, sec);
+}
+function timerLogsForDate(date, subject){
+  return timerLogs.filter(x => x.date === date && (!subject || x.subject === subject));
+}
+function timerLogSeconds(date, subject){
+  return timerLogsForDate(date, subject).reduce((a,x)=>a+(x.durationSec||0), 0);
+}
+
 function escapeHtml(s){
   return String(s == null ? '' : s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 }
@@ -2010,6 +2064,14 @@ function studyAggregate(range){
       if(d>0){ tagMin[tg]=(tagMin[tg]||0)+d; total+=d; }
     }
   });
+  // 집중 타이머 기록도 Study Time 통계에 포함
+  timerLogs.forEach(log=>{
+    if(log.date >= fromS && log.date <= toS){
+      const tg = log.subject || "기타";
+      const d = Math.round((log.durationSec || 0) / 60);
+      if(d > 0){ tagMin[tg] = (tagMin[tg]||0) + d; total += d; }
+    }
+  });
   return { tagMin, total, fromS, toS, label };
 }
 function renderStats(){
@@ -2019,7 +2081,7 @@ function renderStats(){
   const fmtDur = (m)=>{ const h=Math.floor(m/60), mm=m%60; return `${h?h+"h":""}${mm?mm+"m":(h?"":"0m")}`; };
   let body;
   if(total <= 0){
-    body = `<div class="st-empty">이 기간에 기록된<br>공부시간이 없어요.<br><br>할일에 시작~종료 시간을 넣으면<br>태그별로 합산돼요.</div>`;
+    body = `<div class="st-empty">이 기간에 기록된<br>공부시간이 없어요.<br><br>할일 시간을 넣거나<br>집중 타이머를 기록하면<br>태그별로 합산돼요.</div>`;
   } else {
     const max = Math.max.apply(null, Object.values(tagMin));
     const rows = Object.keys(tagMin).sort((a,b)=>tagMin[b]-tagMin[a]).map(tg=>{
@@ -2044,11 +2106,182 @@ function renderStats(){
   });
 }
 
+
+/* ============================================================================
+ *  V2.8 집중 타이머 / Focus Mode
+ *  - 아이패드/넓은 화면의 [타이머] 버튼으로 시작
+ *  - 스마트폰 FAB에는 버튼을 추가하지 않음
+ *  - 기록은 planner:timerLogs에 저장하고 Study Time 통계에 반영
+ * ========================================================================== */
+const timerBack = document.getElementById('timerBack');
+const focusBack = document.getElementById('focusBack');
+
+function openTimerModal(){
+  if(activeFocusTimer){
+    openFocusMode();
+    return;
+  }
+  if(timerBack) timerBack.classList.add('open');
+}
+function closeTimerModal(){
+  if(timerBack) timerBack.classList.remove('open');
+}
+function setTimerSubject(subject){
+  selectedTimerSubject = subject || '수학';
+  document.querySelectorAll('.timer-subject-chip').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.subject === selectedTimerSubject);
+  });
+}
+function selectedGoalMin(){
+  const checked = document.querySelector('input[name="timerGoal"]:checked');
+  return checked ? Number(checked.value || 0) : 90;
+}
+function startFocusTimer(){
+  const subject = selectedTimerSubject || '수학';
+  const memo = (document.getElementById('timerMemo')?.value || '').trim();
+  const now = Date.now();
+  activeFocusTimer = {
+    subject,
+    memo,
+    goalMin:selectedGoalMin(),
+    startAt:now,
+    lastStartAt:now,
+    accumSec:0,
+    running:true
+  };
+  saveActiveFocusTimer();
+  closeTimerModal();
+  openFocusMode();
+  updateFocusView();
+}
+function openFocusMode(){
+  if(!activeFocusTimer) return;
+  if(focusBack){
+    focusBack.classList.add('open');
+    focusBack.setAttribute('aria-hidden','false');
+    document.body.classList.add('focus-lock');
+  }
+  startFocusTick();
+  updateFocusView();
+}
+function closeFocusMode(){
+  if(focusBack){
+    focusBack.classList.remove('open');
+    focusBack.setAttribute('aria-hidden','true');
+    document.body.classList.remove('focus-lock');
+  }
+}
+function startFocusTick(){
+  if(focusTickHandle) clearInterval(focusTickHandle);
+  focusTickHandle = setInterval(updateFocusView, 1000);
+}
+function stopFocusTick(){
+  if(focusTickHandle){ clearInterval(focusTickHandle); focusTickHandle = null; }
+}
+function pauseOrResumeFocus(){
+  if(!activeFocusTimer) return;
+  const now = Date.now();
+  if(activeFocusTimer.running){
+    activeFocusTimer.accumSec = currentFocusElapsedSec();
+    activeFocusTimer.running = false;
+    activeFocusTimer.lastStartAt = null;
+  } else {
+    activeFocusTimer.running = true;
+    activeFocusTimer.lastStartAt = now;
+  }
+  saveActiveFocusTimer();
+  updateFocusView();
+}
+function finishFocusTimer(){
+  if(!activeFocusTimer) return;
+  const elapsed = currentFocusElapsedSec();
+  if(elapsed < 5){
+    if(!confirm('기록 시간이 너무 짧습니다. 기록하지 않고 종료할까요?')) return;
+    activeFocusTimer = null;
+    saveActiveFocusTimer();
+    closeFocusMode();
+    stopFocusTick();
+    updateTimerButtonLabel();
+    return;
+  }
+  const endAt = Date.now();
+  const startAt = activeFocusTimer.startAt || endAt;
+  timerLogs.push({
+    id:'timer-'+Date.now()+'-'+Math.floor(Math.random()*1000),
+    date:fmt(new Date(startAt)),
+    subject:activeFocusTimer.subject || '기타',
+    memo:activeFocusTimer.memo || '',
+    startAt,
+    endAt,
+    durationSec:elapsed
+  });
+  saveTimerLogs();
+  activeFocusTimer = null;
+  saveActiveFocusTimer();
+  closeFocusMode();
+  stopFocusTick();
+  updateTimerButtonLabel();
+  renderStats();
+  renderPlannerPage(AppState.selectedDate);
+}
+function updateFocusView(){
+  if(!activeFocusTimer) { updateTimerButtonLabel(); return; }
+  const subject = activeFocusTimer.subject || '기타';
+  const elapsed = currentFocusElapsedSec();
+  const goalSec = (activeFocusTimer.goalMin || 0) * 60;
+  const progressDeg = goalSec > 0 ? Math.min(360, (elapsed / goalSec) * 360) : ((elapsed % 5400) / 5400) * 360;
+  const today = fmt(new Date(activeFocusTimer.startAt || Date.now()));
+  const todaySec = timerLogSeconds(today, subject) + elapsed;
+
+  const subEl = document.getElementById('focusSubject');
+  const timeEl = document.getElementById('focusTime');
+  const ringEl = document.getElementById('focusRing');
+  const startEl = document.getElementById('focusStart');
+  const todayEl = document.getElementById('focusToday');
+  const statusEl = document.getElementById('focusStatus');
+  const pauseBtn = document.getElementById('focusPause');
+
+  if(subEl) subEl.textContent = subject;
+  if(timeEl) timeEl.textContent = fmtHMS(elapsed);
+  if(ringEl) ringEl.style.setProperty('--progress', `${progressDeg}deg`);
+  if(startEl) startEl.textContent = `시작 ${fmtHMFromDate(activeFocusTimer.startAt || Date.now())}`;
+  if(todayEl) todayEl.textContent = `오늘 ${subject} ${fmtDurKrFromSec(todaySec)}`;
+  if(statusEl) statusEl.textContent = activeFocusTimer.running ? '집중 중' : '일시정지됨';
+  if(pauseBtn) pauseBtn.textContent = activeFocusTimer.running ? '일시정지' : '재개';
+  updateTimerButtonLabel();
+}
+function updateTimerButtonLabel(){
+  const btn = document.getElementById('openTimerLs');
+  if(!btn) return;
+  if(activeFocusTimer){
+    btn.textContent = `타이머 ${fmtHMS(currentFocusElapsedSec())}`;
+  } else {
+    btn.textContent = '타이머';
+  }
+}
+function bindFocusTimerUI(){
+  const openBtn = document.getElementById('openTimerLs');
+  if(openBtn) openBtn.addEventListener('click', openTimerModal);
+  if(timerBack) timerBack.addEventListener('click', e=>{ if(e.target === timerBack) closeTimerModal(); });
+  document.getElementById('timerCancel')?.addEventListener('click', closeTimerModal);
+  document.getElementById('timerStart')?.addEventListener('click', startFocusTimer);
+  document.querySelectorAll('.timer-subject-chip').forEach(btn=>{
+    btn.addEventListener('click', ()=>setTimerSubject(btn.dataset.subject));
+  });
+  document.getElementById('focusPause')?.addEventListener('click', pauseOrResumeFocus);
+  document.getElementById('focusFinish')?.addEventListener('click', finishFocusTimer);
+  document.getElementById('focusBackPlanner')?.addEventListener('click', closeFocusMode);
+  setTimerSubject(selectedTimerSubject);
+}
+
 /* 초기화 */
 (function init(){
   EventsStore.load();                  // 저장된 사용자 일정 + 완료 상태 불러오기
   typeOverrides = Storage.getTypeMap();   // 사용자가 지정한 유형 불러오기
   todoMeta = Storage.getTodoMeta();       // 할일 시간·태그
+  loadTimerLogs();                      // 집중 타이머 기록
+  loadActiveFocusTimer();               // 진행 중 타이머 복구
+  bindFocusTimerUI();
   const savedTags = Storage.getSubjectTags();
   if(savedTags && savedTags.length) subjectTags = savedTags;
   loadTemplates();
@@ -2061,6 +2294,7 @@ function renderStats(){
   renderPlannerPage(AppState.selectedDate);
   loadPostits(); renderPostits();      // 포스트잇 (가로 전용)
   renderStats();                       // 공부시간 통계 (가로 전용)
+  if(activeFocusTimer){ startFocusTick(); updateFocusView(); }
 
   loadToken();                         // 저장된 토큰 복원
   if(isTokenValid()){                  // 유효하면 바로 동기화 (터치/팝업 없음)
