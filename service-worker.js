@@ -1,5 +1,5 @@
 /* Study Planner 서비스워커 — 홈화면 설치 + 오프라인 캐시 */
-const CACHE = 'study-planner-v2-8-1-timer-activation-fix';
+const CACHE = 'study-planner-v2-8-2-theme-color';
 const ASSETS = [
   './',
   './index.html',
@@ -7,7 +7,7 @@ const ASSETS = [
   './icon-192.png',
   './icon-512.png',
   './app.js',
-  './app.js?v=2.8.1'
+  './app.js?v=2.8.2'
 ];
 
 // 설치: 핵심 파일 캐시

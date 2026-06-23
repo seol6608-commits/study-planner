@@ -28,6 +28,8 @@
 
   --paper:#FFFFFF;
   --page:#E3ECF2;
+  --bg-glow-1:#EFF5F9;
+  --bg-glow-2:#DCE7EE;
   --tt-row:24px;          /* 타임테이블 한 시간 높이 */
 
   --font-label:'Jost', sans-serif;
@@ -40,8 +42,8 @@ body{
   font-family:var(--font-ko);
   color:var(--text);
   background:
-    radial-gradient(1200px 600px at 15% -10%, #EFF5F9 0%, transparent 60%),
-    radial-gradient(1000px 700px at 110% 120%, #DCE7EE 0%, transparent 55%),
+    radial-gradient(1200px 600px at 15% -10%, var(--bg-glow-1) 0%, transparent 60%),
+    radial-gradient(1000px 700px at 110% 120%, var(--bg-glow-2) 0%, transparent 55%),
     var(--page);
   -webkit-font-smoothing:antialiased;
   line-height:1.5;
@@ -830,6 +832,178 @@ body{
 }
 
 
+
+/* ============================================================
+   V2.8.2 Color Theme — 레이아웃 비영향 상단 우측 버튼
+   ============================================================ */
+.theme-float-btn{
+  position:fixed;
+  top:calc(env(safe-area-inset-top, 0px) + 12px);
+  right:calc(env(safe-area-inset-right, 0px) + 14px);
+  z-index:96;
+  min-width:72px;
+  height:44px;
+  padding:0 13px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.82);
+  color:var(--blue-deep);
+  box-shadow:0 10px 26px -18px rgba(38,55,70,.70);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  font-family:var(--font-ko);
+  font-size:13px;
+  line-height:1;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  cursor:pointer;
+  touch-action:manipulation;
+}
+.theme-float-btn:active{transform:translateY(1px);}
+.theme-float-btn .theme-ico{font-size:15px;line-height:1;}
+.theme-grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:8px;
+}
+.theme-option{
+  width:100%;
+  min-height:48px;
+  border:1px solid var(--line);
+  border-radius:13px;
+  background:#fff;
+  color:var(--text);
+  font-family:var(--font-ko);
+  font-size:13px;
+  padding:8px 10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  cursor:pointer;
+}
+.theme-option.active{
+  border-color:var(--blue-main);
+  background:var(--blue-bg);
+  color:var(--blue-deep);
+}
+.theme-option-left{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.theme-dotset{
+  display:flex;
+  gap:4px;
+}
+.theme-dotset i{
+  width:16px;height:16px;border-radius:50%;
+  display:block;border:1px solid rgba(38,55,70,.10);
+}
+.theme-check{
+  color:var(--blue-main);
+  font-size:16px;
+  min-width:18px;
+  text-align:center;
+}
+
+/* 색상만 바꾸는 저피로 테마 */
+body[data-theme="sage"]{
+  --blue-main:#6F8F80;
+  --blue-deep:#4F705F;
+  --blue-bg:#EEF6F1;
+  --line:#D8E6DE;
+  --line-soft:#E9F1EC;
+  --text:#273A32;
+  --text-sub:#74887D;
+  --paper:#FFFFFF;
+  --page:#E5EEE8;
+  --bg-glow-1:#F0F6F2;
+  --bg-glow-2:#DDE9E1;
+}
+body[data-theme="beige"]{
+  --blue-main:#A48463;
+  --blue-deep:#765D45;
+  --blue-bg:#F6F0E8;
+  --line:#E5D8C8;
+  --line-soft:#F0E8DD;
+  --text:#3E342B;
+  --text-sub:#8D7C6A;
+  --paper:#FFFDF9;
+  --page:#EEE6DA;
+  --bg-glow-1:#F7F1E8;
+  --bg-glow-2:#E8DCCC;
+}
+body[data-theme="lavender"]{
+  --blue-main:#8A87AE;
+  --blue-deep:#656286;
+  --blue-bg:#F1F0F8;
+  --line:#DDDCEC;
+  --line-soft:#ECEBF4;
+  --text:#313244;
+  --text-sub:#817F96;
+  --paper:#FFFFFF;
+  --page:#E8E7F0;
+  --bg-glow-1:#F3F2F8;
+  --bg-glow-2:#DFDEEB;
+}
+body[data-theme="deep"]{
+  --blue-main:#7FA6C7;
+  --blue-deep:#AFC7DC;
+  --blue-bg:#213342;
+  --line:#395064;
+  --line-soft:#31485B;
+  --text:#E8F0F6;
+  --text-sub:#A9BBC9;
+  --paper:#1B2A36;
+  --page:#15232E;
+  --bg-glow-1:#263D50;
+  --bg-glow-2:#101C26;
+}
+body[data-theme="deep"] .sidebar,
+body[data-theme="deep"] .paper,
+body[data-theme="deep"] .calendar,
+body[data-theme="deep"] .exam-box,
+body[data-theme="deep"] .cal-memo,
+body[data-theme="deep"] .modal,
+body[data-theme="deep"] #statsArea,
+body[data-theme="deep"] #postitArea{
+  background:rgba(27,42,54,.86);
+}
+body[data-theme="deep"] .field,
+body[data-theme="deep"] .task-line,
+body[data-theme="deep"] .type-menu,
+body[data-theme="deep"] .theme-option{
+  background:rgba(255,255,255,.055);
+}
+body[data-theme="deep"] input,
+body[data-theme="deep"] select{
+  background:#223443;
+  color:var(--text);
+}
+body[data-theme="deep"] .theme-float-btn{
+  background:rgba(27,42,54,.82);
+  color:var(--text);
+  border-color:rgba(127,166,199,.55);
+}
+body[data-theme="deep"] .cal-day{
+  background:rgba(255,255,255,.04);
+}
+body[data-theme="deep"] .cal-day.muted{
+  color:#6F8190;
+}
+@media (max-width:600px){
+  .theme-float-btn{
+    min-width:58px;
+    height:42px;
+    padding:0 10px;
+    font-size:12px;
+    top:calc(env(safe-area-inset-top, 0px) + 8px);
+    right:calc(env(safe-area-inset-right, 0px) + 8px);
+  }
+}
+
 /* ============================================================
    V2.8 Focus Timer — 아이패드/넓은 화면 전용 진입 버튼 + 전체화면 집중모드
    ============================================================ */
@@ -1402,6 +1576,7 @@ body.focus-lock{overflow:hidden;}
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
+<button type="button" class="theme-float-btn" id="themeBtn" aria-label="색상 테마 변경"><span class="theme-ico">🎨</span><span>색상</span></button>
 <div class="app">
   <!-- ===================== 날짜 선택 (월간 캘린더) ===================== -->
   <aside class="sidebar">
@@ -1780,7 +1955,22 @@ body.focus-lock{overflow:hidden;}
 </div>
 
 
-<script src="app.js?v=2.8.1"></script>
+
+<!-- ===================== 색상 테마 모달 ===================== -->
+<div class="modal-back" id="themeBack">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="m-head">색상 테마</div>
+    <div class="m-body">
+      <div class="theme-grid" id="themeGrid"></div>
+    </div>
+    <div class="m-actions">
+      <button class="btn-cancel" id="themeClose">닫기</button>
+    </div>
+  </div>
+</div>
+
+
+<script src="app.js?v=2.8.2"></script>
 
 </body>
 </html>

@@ -2107,6 +2107,66 @@ function renderStats(){
 }
 
 
+
+/* ============================================================================
+ *  V2.8.2 색상 테마
+ *  - 레이아웃 변경 없이 CSS 변수만 바꿈
+ *  - 상단 오른쪽 고정 버튼은 44px 이상 터치 영역 확보
+ * ========================================================================== */
+const THEME_STORAGE_KEY = 'planner:theme';
+const COLOR_THEMES = [
+  { id:'default', name:'기본 블루', dots:['#5E87A8','#EEF6FA','#E3ECF2'] },
+  { id:'sage', name:'세이지 그린', dots:['#6F8F80','#EEF6F1','#E5EEE8'] },
+  { id:'beige', name:'웜 베이지', dots:['#A48463','#F6F0E8','#EEE6DA'] },
+  { id:'lavender', name:'라벤더 그레이', dots:['#8A87AE','#F1F0F8','#E8E7F0'] },
+  { id:'deep', name:'딥 블루그레이', dots:['#7FA6C7','#213342','#15232E'] }
+];
+let currentTheme = 'default';
+function loadTheme(){
+  try{ currentTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'default'; }
+  catch(e){ currentTheme = 'default'; }
+  applyTheme(currentTheme, false);
+}
+function saveTheme(id){
+  currentTheme = id || 'default';
+  try{ localStorage.setItem(THEME_STORAGE_KEY, currentTheme); }catch(e){}
+}
+function applyTheme(id, save){
+  const themeId = COLOR_THEMES.some(t=>t.id===id) ? id : 'default';
+  if(themeId === 'default') document.body.removeAttribute('data-theme');
+  else document.body.setAttribute('data-theme', themeId);
+  currentTheme = themeId;
+  if(save !== false) saveTheme(themeId);
+  renderThemeOptions();
+}
+function renderThemeOptions(){
+  const grid = document.getElementById('themeGrid');
+  if(!grid) return;
+  grid.innerHTML = COLOR_THEMES.map(t=>{
+    const dots = t.dots.map(c=>`<i style="background:${c}"></i>`).join('');
+    return `<button type="button" class="theme-option ${t.id===currentTheme?'active':''}" data-theme-id="${t.id}">`
+      + `<span class="theme-option-left"><span class="theme-dotset">${dots}</span><span>${escapeHtml(t.name)}</span></span>`
+      + `<span class="theme-check">${t.id===currentTheme?'✓':''}</span>`
+      + `</button>`;
+  }).join('');
+  grid.querySelectorAll('.theme-option').forEach(btn=>{
+    btn.addEventListener('click', ()=>applyTheme(btn.dataset.themeId || 'default', true));
+  });
+}
+function openThemeModal(){
+  renderThemeOptions();
+  document.getElementById('themeBack')?.classList.add('open');
+}
+function closeThemeModal(){
+  document.getElementById('themeBack')?.classList.remove('open');
+}
+function bindThemeUI(){
+  document.getElementById('themeBtn')?.addEventListener('click', openThemeModal);
+  document.getElementById('themeClose')?.addEventListener('click', closeThemeModal);
+  const back = document.getElementById('themeBack');
+  if(back) back.addEventListener('click', e=>{ if(e.target === back) closeThemeModal(); });
+}
+
 /* ============================================================================
  *  V2.8 집중 타이머 / Focus Mode
  *  - 아이패드/넓은 화면의 [타이머] 버튼으로 시작
@@ -2292,6 +2352,8 @@ document.addEventListener('click', function(e){
 
 /* 초기화 */
 (function init(){
+  loadTheme();                          // 색상 테마 먼저 적용
+  bindThemeUI();
   EventsStore.load();                  // 저장된 사용자 일정 + 완료 상태 불러오기
   typeOverrides = Storage.getTypeMap();   // 사용자가 지정한 유형 불러오기
   todoMeta = Storage.getTodoMeta();       // 할일 시간·태그
