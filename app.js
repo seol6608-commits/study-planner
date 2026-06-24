@@ -317,6 +317,10 @@ function fmtDurKrFromSec(sec){
   if(h) return `${h}시간`;
   return `${m}분`;
 }
+function fmtTimerLogDurationLabel(sec){
+  const mins = Math.max(0, Math.round((sec || 0)/60));
+  return `${mins}분`;
+}
 function currentFocusElapsedSec(){
   if(!activeFocusTimer) return 0;
   let sec = activeFocusTimer.accumSec || 0;
@@ -2408,17 +2412,37 @@ function deleteTimerLog(id){
   saveTimerLogs();
   renderStats();
 }
+let editingTimerLogId = null;
 function editTimerLogDuration(id){
   if(!id) return;
   const log = timerLogs.find(x => x.id === id);
   if(!log) return;
+  editingTimerLogId = id;
   const curMin = Math.max(0, Math.round((log.durationSec || 0) / 60));
-  const raw = prompt('타이머 기록 시간을 몇 분으로 수정할까요?', String(curMin));
-  if(raw === null) return;
-  const cleaned = String(raw).replace(/[^0-9.]/g, '');
-  const min = Math.round(Number(cleaned));
+  const subjectEl = document.getElementById('timerLogEditSubject');
+  const timeEl = document.getElementById('timerLogEditTime');
+  const input = document.getElementById('timerLogMinutes');
+  if(subjectEl) subjectEl.textContent = log.subject || '기타';
+  if(timeEl){
+    const start = log.startAt ? fmtHMFromDate(log.startAt) : '--:--';
+    const end = log.endAt ? fmtHMFromDate(log.endAt) : '--:--';
+    timeEl.textContent = `${start}~${end}`;
+  }
+  if(input) input.value = String(curMin);
+  document.getElementById('timerLogEditBack')?.classList.add('open');
+  setTimeout(()=>input?.focus(), 40);
+}
+function closeTimerLogEdit(){
+  editingTimerLogId = null;
+  document.getElementById('timerLogEditBack')?.classList.remove('open');
+}
+function saveTimerLogEdit(){
+  const log = timerLogs.find(x => x.id === editingTimerLogId);
+  const input = document.getElementById('timerLogMinutes');
+  if(!log || !input){ closeTimerLogEdit(); return; }
+  const min = Math.round(Number(String(input.value || '').replace(/[^0-9.]/g, '')));
   if(!Number.isFinite(min) || min < 0){
-    alert('0 이상의 분 단위 숫자로 입력해주세요.');
+    input.focus();
     return;
   }
   log.durationSec = min * 60;
@@ -2428,6 +2452,7 @@ function editTimerLogDuration(id){
     log.startAt = Number(log.endAt) - log.durationSec * 1000;
   }
   saveTimerLogs();
+  closeTimerLogEdit();
   renderStats();
 }
 function renderTimerLogSection(){
@@ -2442,7 +2467,7 @@ function renderTimerLogSection(){
       const subject = log.subject || '기타';
       const start = log.startAt ? fmtHMFromDate(log.startAt) : '--:--';
       const end = log.endAt ? fmtHMFromDate(log.endAt) : '--:--';
-      const dur = fmtDurKrFromSec(log.durationSec || 0);
+      const dur = fmtTimerLogDurationLabel(log.durationSec || 0);
       const memo = log.memo ? ` · ${escapeHtml(log.memo)}` : '';
       return `<div class="tl-item" data-id="${escapeHtml(log.id)}">`
         + `<span class="tl-dot" style="background:${tagColor(subject)}"></span>`
@@ -2714,9 +2739,11 @@ function updateTimerButtonLabel(){
   const btn = document.getElementById('openTimerLs');
   if(!btn) return;
   if(activeFocusTimer){
-    btn.textContent = `타이머 ${fmtTimerButtonElapsed(currentFocusElapsedSec())}`;
+    btn.textContent = fmtTimerButtonElapsed(currentFocusElapsedSec());
+    btn.classList.add('running');
   } else {
     btn.textContent = '타이머';
+    btn.classList.remove('running');
   }
 }
 function bindFocusTimerUI(){
@@ -2731,6 +2758,10 @@ function bindFocusTimerUI(){
   document.getElementById('focusPause')?.addEventListener('click', pauseOrResumeFocus);
   document.getElementById('focusFinish')?.addEventListener('click', finishFocusTimer);
   document.getElementById('focusBackPlanner')?.addEventListener('click', closeFocusMode);
+  document.getElementById('timerLogEditCancel')?.addEventListener('click', closeTimerLogEdit);
+  document.getElementById('timerLogEditSave')?.addEventListener('click', saveTimerLogEdit);
+  const tlEditBack = document.getElementById('timerLogEditBack');
+  if(tlEditBack) tlEditBack.addEventListener('click', e=>{ if(e.target === tlEditBack) closeTimerLogEdit(); });
   setTimerSubject(selectedTimerSubject);
 }
 

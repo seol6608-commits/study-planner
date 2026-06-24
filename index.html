@@ -2537,6 +2537,160 @@ body[data-theme="deep"] .tl-edit:hover{
   color:var(--text);
 }
 
+
+/* ============================================================
+   V2.8.11 레이아웃 고정 보정
+   - Task 버튼 그룹은 고정 폭 grid로 배치하여 TOTAL 영역 침범 금지
+   - 타이머 버튼은 작동/정지 상태 모두 같은 폭 유지
+   - Timer Log 수정은 앱 내부 모달로 표시
+   ============================================================ */
+.field.task > h3{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:6px;
+  min-width:0;
+}
+.field.task > h3 .task-add-group{
+  flex:0 0 172px;
+  width:172px;
+  max-width:172px;
+  min-width:0;
+  display:grid;
+  grid-template-columns:50px 56px 58px;
+  gap:4px;
+  align-items:center;
+  overflow:visible;
+}
+.field.task > h3 .add-btn{
+  width:100%;
+  min-width:0 !important;
+  max-width:none !important;
+  height:27px;
+  padding:0 !important;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  white-space:nowrap;
+  word-break:keep-all;
+  overflow:hidden;
+  text-overflow:clip;
+  line-height:1;
+  font-size:10.5px;
+}
+.field.task > h3 #openTimerLs{
+  width:58px;
+  min-width:58px !important;
+  max-width:58px !important;
+  font-variant-numeric:tabular-nums;
+}
+@media (min-width:981px) and (max-width:1240px){
+  .field.task > h3{gap:5px;}
+  .field.task > h3 .task-add-group{
+    flex-basis:166px;
+    width:166px;
+    max-width:166px;
+    grid-template-columns:48px 54px 56px;
+    gap:4px;
+  }
+  .field.task > h3 .add-btn{
+    height:26px;
+    font-size:10.2px;
+  }
+  .field.task > h3 #openTimerLs{
+    width:56px;
+    min-width:56px !important;
+    max-width:56px !important;
+  }
+}
+.timer-log-edit-modal{
+  max-width:420px;
+}
+.tl-edit-preview{
+  border:1px solid var(--line-soft);
+  border-radius:14px;
+  background:
+    linear-gradient(135deg, rgba(94,135,168,.10), rgba(255,255,255,.72));
+  padding:12px 13px;
+  margin-bottom:14px;
+}
+.tl-edit-kicker{
+  font-family:var(--font-label);
+  font-size:10.5px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--text-sub);
+  margin-bottom:5px;
+}
+.tl-edit-subject{
+  color:var(--blue-deep);
+  font-size:15px;
+  font-weight:600;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.tl-edit-time{
+  margin-top:3px;
+  color:var(--text-sub);
+  font-size:12px;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.tl-minute-input-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:8px;
+  align-items:center;
+}
+.tl-minute-input-row input{
+  min-width:0;
+  height:40px;
+  font-size:16px;
+  font-variant-numeric:tabular-nums;
+}
+.tl-minute-input-row span{
+  color:var(--text-sub);
+  font-size:13px;
+  white-space:nowrap;
+}
+.tl-edit-hint{
+  margin-top:7px;
+  color:var(--text-sub);
+  font-size:11.5px;
+  line-height:1.45;
+}
+.tl-duration{
+  max-width:64px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.tl-actions{
+  width:62px;
+  justify-content:flex-end;
+}
+.tl-edit{
+  min-width:32px;
+  max-width:32px;
+  padding:0;
+}
+.tl-del{
+  width:24px;
+}
+body[data-theme="deep"] .tl-edit-preview{
+  background:linear-gradient(135deg, rgba(126,165,196,.14), rgba(255,255,255,.045));
+  border-color:var(--line);
+}
+@media (max-width:600px){
+  .timer-log-edit-modal{
+    width:calc(100vw - 28px);
+    max-width:none;
+  }
+}
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -2987,6 +3141,33 @@ body[data-theme="deep"] .tl-edit:hover{
 
 
 
+
+<!-- ===================== Timer Log 수정 모달 ===================== -->
+<div class="modal-back" id="timerLogEditBack">
+  <div class="modal timer-log-edit-modal" role="dialog" aria-modal="true">
+    <div class="m-head">Timer Log 수정</div>
+    <div class="m-body">
+      <div class="tl-edit-preview">
+        <div class="tl-edit-kicker">선택한 기록</div>
+        <div class="tl-edit-subject" id="timerLogEditSubject">수학</div>
+        <div class="tl-edit-time" id="timerLogEditTime">--:--~--:--</div>
+      </div>
+      <div class="m-field">
+        <label>공부 시간</label>
+        <div class="tl-minute-input-row">
+          <input type="number" id="timerLogMinutes" min="0" step="1" inputmode="numeric" />
+          <span>분</span>
+        </div>
+        <div class="tl-edit-hint">분 단위 숫자만 수정합니다. 저장하면 Study Time도 바로 다시 계산됩니다.</div>
+      </div>
+    </div>
+    <div class="m-actions">
+      <button class="btn-cancel" id="timerLogEditCancel">취소</button>
+      <button class="btn-save" id="timerLogEditSave">저장</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===================== 색상 테마 모달 ===================== -->
 <div class="modal-back" id="themeBack">
   <div class="modal" role="dialog" aria-modal="true">
@@ -3001,7 +3182,7 @@ body[data-theme="deep"] .tl-edit:hover{
 </div>
 
 
-<script src="app.js?v=2.8.10"></script>
+<script src="app.js?v=2.8.11"></script>
 
 </body>
 </html>
