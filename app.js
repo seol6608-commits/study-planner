@@ -299,6 +299,13 @@ function fmtHMS(sec){
   const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
   return `${pad2(h)}:${pad2(m)}:${pad2(s)}`;
 }
+function fmtTimerButtonElapsed(sec){
+  sec = Math.max(0, Math.floor(sec || 0));
+  const mins = Math.floor(sec / 60);
+  const s = sec % 60;
+  if(mins >= 100) return '100분';
+  return `${mins}:${pad2(s)}`;
+}
 function fmtHMFromDate(ms){
   const d = new Date(ms);
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
@@ -2401,6 +2408,28 @@ function deleteTimerLog(id){
   saveTimerLogs();
   renderStats();
 }
+function editTimerLogDuration(id){
+  if(!id) return;
+  const log = timerLogs.find(x => x.id === id);
+  if(!log) return;
+  const curMin = Math.max(0, Math.round((log.durationSec || 0) / 60));
+  const raw = prompt('타이머 기록 시간을 몇 분으로 수정할까요?', String(curMin));
+  if(raw === null) return;
+  const cleaned = String(raw).replace(/[^0-9.]/g, '');
+  const min = Math.round(Number(cleaned));
+  if(!Number.isFinite(min) || min < 0){
+    alert('0 이상의 분 단위 숫자로 입력해주세요.');
+    return;
+  }
+  log.durationSec = min * 60;
+  if(log.startAt){
+    log.endAt = Number(log.startAt) + log.durationSec * 1000;
+  } else if(log.endAt){
+    log.startAt = Number(log.endAt) - log.durationSec * 1000;
+  }
+  saveTimerLogs();
+  renderStats();
+}
 function renderTimerLogSection(){
   const logs = timerLogItemsForSelectedDate();
   const dateLabel = AppState.selectedDate ? AppState.selectedDate.slice(5).replace('-', '.') : '';
@@ -2421,7 +2450,10 @@ function renderTimerLogSection(){
         + `<div class="tl-top"><span class="tl-subject">${escapeHtml(subject)}</span><span class="tl-duration">${escapeHtml(dur)}</span></div>`
         + `<div class="tl-time">${escapeHtml(start)}~${escapeHtml(end)}${memo}</div>`
         + `</div>`
+        + `<div class="tl-actions">`
+        + `<button type="button" class="tl-edit" data-id="${escapeHtml(log.id)}" aria-label="타이머 기록 시간 수정">수정</button>`
         + `<button type="button" class="tl-del" data-id="${escapeHtml(log.id)}" aria-label="타이머 기록 삭제">×</button>`
+        + `</div>`
         + `</div>`;
     }).join('');
     saveTimerLogs();
@@ -2461,6 +2493,9 @@ function renderStats(){
     + renderTimerLogSection();
   area.querySelectorAll(".st-toggle button").forEach(b=>{
     b.addEventListener("click", ()=>{ statsRange = b.dataset.r; renderStats(); });
+  });
+  area.querySelectorAll(".tl-edit").forEach(btn=>{
+    btn.addEventListener("click", ()=>editTimerLogDuration(btn.dataset.id));
   });
   area.querySelectorAll(".tl-del").forEach(btn=>{
     btn.addEventListener("click", ()=>deleteTimerLog(btn.dataset.id));
@@ -2679,7 +2714,7 @@ function updateTimerButtonLabel(){
   const btn = document.getElementById('openTimerLs');
   if(!btn) return;
   if(activeFocusTimer){
-    btn.textContent = `타이머 ${fmtHMS(currentFocusElapsedSec())}`;
+    btn.textContent = `타이머 ${fmtTimerButtonElapsed(currentFocusElapsedSec())}`;
   } else {
     btn.textContent = '타이머';
   }

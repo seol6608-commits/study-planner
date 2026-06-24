@@ -2447,6 +2447,96 @@ body.focus-lock{overflow:hidden;}
   .field.task > h3 #openTimerLs{min-width:58px;}
 }
 
+
+/* ============================================================
+   V2.8.10 타이머 버튼 / Timer Log 수정 보정
+   - 타이머 버튼은 분:초 또는 100분으로 짧게 표시
+   - 버튼 그룹이 TOTAL 영역으로 침범하지 않도록 폭 제한
+   - Timer Log 수정/삭제 버튼 추가와 긴 숫자 표시에도 레이아웃 보호
+   ============================================================ */
+.field.task > h3{
+  min-width:0;
+}
+.field.task > h3 .task-add-group{
+  max-width:calc(100% - 58px);
+  min-width:0;
+  overflow:hidden;
+}
+.field.task > h3 .add-btn{
+  flex:0 0 auto;
+}
+.field.task > h3 #openTimerLs{
+  max-width:92px;
+  min-width:74px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  font-variant-numeric:tabular-nums;
+}
+@media (min-width:981px) and (max-width:1240px){
+  .field.task > h3 .task-add-group{
+    max-width:calc(100% - 54px);
+  }
+  .field.task > h3 #openTimerLs{
+    max-width:86px;
+    min-width:70px;
+  }
+}
+.tl-item{
+  grid-template-columns:auto minmax(0,1fr) auto;
+}
+.tl-top{
+  min-width:0;
+}
+.tl-subject{
+  flex:1 1 auto;
+  min-width:0;
+}
+.tl-duration{
+  flex:0 1 auto;
+  max-width:86px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+.tl-actions{
+  display:flex;
+  gap:4px;
+  align-items:center;
+  flex:0 0 auto;
+}
+.tl-edit,
+.tl-del{
+  flex:0 0 auto;
+}
+.tl-edit{
+  height:24px;
+  min-width:32px;
+  padding:0 7px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.7);
+  color:var(--text-sub);
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:11px;
+  font-family:var(--font-ko);
+}
+.tl-edit:active{
+  transform:translateY(1px);
+}
+body[data-theme="deep"] .tl-edit{
+  background:rgba(255,255,255,.075);
+  border-color:var(--line);
+  color:var(--text-sub);
+}
+body[data-theme="deep"] .tl-edit:hover{
+  background:rgba(126,165,196,.16);
+  color:var(--text);
+}
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -2911,7 +3001,7 @@ body.focus-lock{overflow:hidden;}
 </div>
 
 
-<script src="app.js?v=2.8.9"></script>
+<script src="app.js?v=2.8.10"></script>
 
 </body>
 </html>
