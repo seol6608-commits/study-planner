@@ -3093,6 +3093,190 @@ body[data-theme="deep"] .focus-back{
   --focus-primary:#78A8CD;
 }
 
+
+/* ============================================================
+   V2.8.16 Smartphone layout fix
+   - 아이패드/넓은 화면 레이아웃 영향 없음
+   - 스마트폰에서는 요약본 기준으로 D-Day/Total/Task 영역 overflow 방지
+   ============================================================ */
+@media (max-width:600px){
+  /* 전체 폭 보호 */
+  .paper,
+  .sheet,
+  .field,
+  .field .val,
+  .field.dday,
+  .field.total,
+  .field.contents,
+  .field.date{
+    min-width:0;
+    max-width:100%;
+    overflow:hidden;
+  }
+
+  .sheet{
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    column-gap:10px;
+    padding:10px 12px 10px;
+  }
+
+  /* 스마트폰에서는 플래너 내부 버튼을 숨기고 하단 FAB만 사용 */
+  .field.task > h3{
+    display:block;
+    min-width:0;
+    overflow:hidden;
+  }
+  .field.task > h3 .task-add-group,
+  .field.task > h3 .add-btn{
+    display:none !important;
+  }
+
+  /* D-Day: 대표 일정 1줄만 요약 표시 */
+  .field.dday .val{
+    border-bottom:1px solid var(--line);
+    padding-bottom:4px;
+  }
+  .field.dday .dday-main{
+    display:flex;
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    gap:5px;
+    align-items:baseline;
+    overflow:hidden;
+    white-space:nowrap;
+  }
+  .field.dday .val .dday-main:nth-of-type(n+2){
+    display:none !important;
+  }
+  .field.dday .dday-tag{
+    flex:0 0 auto;
+    min-width:34px;
+    max-width:42px;
+    font-size:13px;
+    overflow:hidden;
+    text-overflow:clip;
+  }
+  .field.dday .dd-dot{
+    flex:0 0 auto;
+    width:6px;
+    height:6px;
+  }
+  .field.dday .dday-title-scroll{
+    flex:1 1 auto;
+    width:auto !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    overflow:hidden !important;
+    white-space:nowrap;
+    padding-bottom:0;
+  }
+  .field.dday .dday-title-content,
+  .field.dday .up-title,
+  .field.dday .dday-title{
+    display:block !important;
+    width:auto !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+    white-space:nowrap !important;
+    padding-right:0 !important;
+    font-size:10.5px !important;
+  }
+  .field.dday .dday-section-label,
+  .field.dday .dday-list{
+    display:none !important;
+  }
+  .field.dday .dday-empty{
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    font-size:10.5px;
+    padding:0;
+  }
+
+  /* CONTENTS: 한 줄 요약 */
+  .field.contents .val{
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    line-height:1.35;
+    font-size:11.5px;
+  }
+
+  /* TOTAL: 스마트폰에서는 상세 태그를 숨기고 진행 요약만 표시 */
+  .field.total .val{
+    white-space:normal;
+    overflow:hidden;
+    line-height:1.35;
+    font-size:11.5px;
+  }
+  .field.total .total-study{
+    margin-top:3px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    font-size:11.2px;
+    max-width:100%;
+  }
+  .field.total .study-pct{
+    font-size:10.5px;
+  }
+  .field.total .study-bar{
+    height:5px;
+    margin-top:4px;
+  }
+  .field.total .total-bytag{
+    display:none !important;
+  }
+
+  /* Task 목록을 최대한 메인 영역으로 확보 */
+  .field.task{
+    min-height:0;
+    overflow:hidden;
+    margin-top:2px;
+  }
+  .field.task > h3{
+    font-size:9.5px;
+    letter-spacing:.18em;
+    padding-bottom:4px;
+    margin-bottom:2px;
+  }
+  .task-body{
+    min-height:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+  }
+  .task-line{
+    height:31px;
+    min-width:0;
+  }
+  .task-line .t-title{
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-size:12.5px;
+  }
+  .task-line .t-time{
+    flex:0 0 auto;
+    max-width:84px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-size:11.2px;
+  }
+
+  /* 하단 고정 FAB와 내용 겹침 방지 */
+  .stage{
+    padding-bottom:calc(92px + env(safe-area-inset-bottom, 0px));
+  }
+  .fab-bar{
+    z-index:110;
+  }
+}
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -3585,7 +3769,7 @@ body[data-theme="deep"] .focus-back{
 </div>
 
 
-<script src="app.js?v=2.8.15"></script>
+<script src="app.js?v=2.8.16"></script>
 
 </body>
 </html>
