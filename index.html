@@ -2691,6 +2691,108 @@ body[data-theme="deep"] .tl-edit-preview{
   }
 }
 
+
+/* ============================================================
+   V2.8.12 Focus Mode / Timer Log 보정
+   - Timer Log 메모/시간 줄바꿈 방지
+   - Focus Mode 큰 제목 = 메모, 과목명은 작게 표시
+   - Focus Mode 색상은 현재 테마와 연동
+   ============================================================ */
+.tl-time{
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:100%;
+}
+.tl-main{
+  min-width:0;
+  overflow:hidden;
+}
+.tl-top{
+  min-width:0;
+}
+.focus-back{
+  --focus-bg-a:rgba(18,31,43,.96);
+  --focus-bg-b:rgba(39,58,74,.95);
+  --focus-glow:rgba(94,135,168,.30);
+  --focus-card:rgba(17,31,43,.52);
+  --focus-accent:#7FA6C7;
+  --focus-text:#ffffff;
+  --focus-sub:rgba(255,255,255,.70);
+  background:
+    radial-gradient(760px 460px at 50% 18%, var(--focus-glow), transparent 62%),
+    linear-gradient(135deg, var(--focus-bg-a), var(--focus-bg-b));
+}
+.focus-card{
+  background:
+    radial-gradient(420px 300px at 50% 42%, color-mix(in srgb, var(--focus-accent) 22%, transparent), transparent 66%),
+    var(--focus-card);
+}
+.focus-subject{
+  max-width:min(620px, 76vw);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  line-height:1.12;
+  color:var(--focus-accent);
+}
+.focus-topic{
+  margin-top:8px;
+  font-family:var(--font-ko);
+  font-size:16px;
+  letter-spacing:.12em;
+  color:var(--focus-sub);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:min(420px, 66vw);
+}
+.focus-time{
+  color:var(--focus-text);
+}
+.focus-meta,
+.focus-status{
+  color:var(--focus-sub);
+}
+body[data-theme="sage"] .focus-back{
+  --focus-bg-a:rgba(24,43,36,.96);
+  --focus-bg-b:rgba(47,72,61,.95);
+  --focus-glow:rgba(111,143,128,.32);
+  --focus-card:rgba(22,43,36,.54);
+  --focus-accent:#A8CFBC;
+}
+body[data-theme="beige"] .focus-back{
+  --focus-bg-a:rgba(54,42,32,.96);
+  --focus-bg-b:rgba(84,66,47,.95);
+  --focus-glow:rgba(164,132,99,.34);
+  --focus-card:rgba(58,43,31,.54);
+  --focus-accent:#E2C39F;
+}
+body[data-theme="lavender"] .focus-back{
+  --focus-bg-a:rgba(38,37,58,.96);
+  --focus-bg-b:rgba(64,61,88,.95);
+  --focus-glow:rgba(138,135,174,.34);
+  --focus-card:rgba(38,37,58,.54);
+  --focus-accent:#C9C5EE;
+}
+body[data-theme="deep"] .focus-back{
+  --focus-bg-a:rgba(13,25,33,.97);
+  --focus-bg-b:rgba(28,45,58,.96);
+  --focus-glow:rgba(126,165,196,.30);
+  --focus-card:rgba(17,31,42,.58);
+  --focus-accent:#9EC4E4;
+}
+@media (max-width:600px){
+  .focus-subject{
+    max-width:82vw;
+    font-size:34px;
+  }
+  .focus-topic{
+    max-width:72vw;
+    font-size:13px;
+  }
+}
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -3118,7 +3220,8 @@ body[data-theme="deep"] .tl-edit-preview{
   <div class="focus-card" role="dialog" aria-modal="true">
     <div>
       <div class="focus-kicker">Focus Mode</div>
-      <div class="focus-subject" id="focusSubject">수학</div>
+      <div class="focus-subject" id="focusSubject">메모</div>
+      <div class="focus-topic" id="focusTopic">수학</div>
     </div>
 
     <div class="focus-ring" id="focusRing">
@@ -3182,7 +3285,7 @@ body[data-theme="deep"] .tl-edit-preview{
 </div>
 
 
-<script src="app.js?v=2.8.11"></script>
+<script src="app.js?v=2.8.12"></script>
 
 </body>
 </html>

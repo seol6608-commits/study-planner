@@ -2719,6 +2719,7 @@ function updateFocusView(){
   const todaySec = timerLogSeconds(today, subject) + elapsed;
 
   const subEl = document.getElementById('focusSubject');
+  const topicEl = document.getElementById('focusTopic');
   const timeEl = document.getElementById('focusTime');
   const ringEl = document.getElementById('focusRing');
   const startEl = document.getElementById('focusStart');
@@ -2726,7 +2727,8 @@ function updateFocusView(){
   const statusEl = document.getElementById('focusStatus');
   const pauseBtn = document.getElementById('focusPause');
 
-  if(subEl) subEl.textContent = subject;
+  if(subEl) subEl.textContent = (activeFocusTimer.memo || '').trim() || '집중 중';
+  if(topicEl) topicEl.textContent = subject;
   if(timeEl) timeEl.textContent = fmtHMS(elapsed);
   if(ringEl) ringEl.style.setProperty('--progress', `${progressDeg}deg`);
   if(startEl) startEl.textContent = `시작 ${fmtHMFromDate(activeFocusTimer.startAt || Date.now())}`;
