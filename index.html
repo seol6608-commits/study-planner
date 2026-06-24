@@ -2399,6 +2399,54 @@ body.focus-lock{overflow:hidden;}
   }
 }
 
+
+/* ============================================================
+   V2.8.9 Task 헤더 버튼 줄바꿈 보정
+   - + 할일 / 템플릿 / 타이머 버튼이 두 줄로 쪼개지는 문제 수정
+   - 버튼 텍스트는 한 줄 유지
+   ============================================================ */
+.field.task > h3{
+  gap:8px;
+}
+.field.task > h3 .task-add-group{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:nowrap;
+}
+.field.task > h3 .add-btn{
+  white-space:nowrap;
+  word-break:keep-all;
+  min-width:auto;
+  height:28px;
+  padding:0 11px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  line-height:1;
+}
+.field.task > h3 #openAddTodoLs{
+  min-width:58px;
+}
+.field.task > h3 #openTemplateLs{
+  min-width:62px;
+}
+.field.task > h3 #openTimerLs{
+  min-width:62px;
+}
+@media (min-width:981px) and (max-width:1240px){
+  .field.task > h3 .task-add-group{gap:5px;}
+  .field.task > h3 .add-btn{
+    height:27px;
+    padding:0 9px;
+    font-size:10.5px;
+  }
+  .field.task > h3 #openAddTodoLs{min-width:54px;}
+  .field.task > h3 #openTemplateLs{min-width:58px;}
+  .field.task > h3 #openTimerLs{min-width:58px;}
+}
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -2863,7 +2911,7 @@ body.focus-lock{overflow:hidden;}
 </div>
 
 
-<script src="app.js?v=2.8.8"></script>
+<script src="app.js?v=2.8.9"></script>
 
 </body>
 </html>
