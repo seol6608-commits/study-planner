@@ -1,5 +1,5 @@
 /* Study Planner 서비스워커 — 홈화면 설치 + 오프라인 캐시 */
-const CACHE = 'study-planner-v2-8-14-focus-no-glow-brightness-fix';
+const CACHE = 'study-planner-v2-8-15-focus-brightness-ring-theme';
 const ASSETS = [
   './',
   './index.html',
@@ -7,7 +7,7 @@ const ASSETS = [
   './icon-192.png',
   './icon-512.png',
   './app.js',
-  './app.js?v=2.8.14'
+  './app.js?v=2.8.15'
 ];
 
 // 설치: 핵심 파일 캐시

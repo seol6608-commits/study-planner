@@ -3001,6 +3001,98 @@ body[data-theme="deep"] .focus-back{
   --focus-accent:#9EC4E4;
 }
 
+
+/* ============================================================
+   V2.8.15 Focus Mode 밝기 / 타이머 링 테마 보정
+   - 오버레이 어둡기 추가 완화
+   - 타이머 링 active/rest/glow 색상 테마별 연동
+   - 중앙 원반은 중립 다크 유지
+   ============================================================ */
+.focus-back{
+  --focus-bg-a:rgba(22,32,41,.72);
+  --focus-bg-b:rgba(38,49,58,.70);
+  --focus-card:rgba(24,35,45,.58);
+  --focus-accent:#8FB8D8;
+  --focus-ring-active:#8FB8D8;
+  --focus-ring-rest:rgba(143,184,216,.22);
+  --focus-ring-glow:rgba(143,184,216,.30);
+  --focus-ring-inner:rgba(16,29,40,.92);
+  --focus-primary:#6E9FC7;
+  background:linear-gradient(135deg, var(--focus-bg-a), var(--focus-bg-b)) !important;
+}
+.focus-card{
+  background:var(--focus-card) !important;
+  border-color:rgba(255,255,255,.17) !important;
+  box-shadow:0 20px 54px -34px rgba(0,0,0,.64), inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+.focus-ring{
+  background:
+    radial-gradient(circle at 50% 50%, var(--focus-ring-inner) 0 58%, transparent 59%),
+    conic-gradient(from -90deg, var(--focus-ring-active) var(--progress), var(--focus-ring-rest) 0) !important;
+  box-shadow:
+    0 0 0 14px rgba(255,255,255,.035),
+    0 0 46px -14px var(--focus-ring-glow),
+    inset 0 0 32px rgba(0,0,0,.34) !important;
+}
+.focus-ring::before{
+  border-color:rgba(255,255,255,.13) !important;
+  box-shadow:0 0 28px -8px var(--focus-ring-glow) !important;
+}
+.focus-ring::after{
+  background:
+    repeating-conic-gradient(from -90deg, rgba(255,255,255,.22) 0 1deg, transparent 1deg 4deg) !important;
+  opacity:.20 !important;
+}
+.focus-actions button.primary{
+  background:var(--focus-primary) !important;
+  border-color:var(--focus-primary) !important;
+  color:#fff !important;
+}
+.focus-actions button.ghost{
+  background:rgba(255,255,255,.13) !important;
+  border-color:rgba(255,255,255,.24) !important;
+}
+body[data-theme="sage"] .focus-back{
+  --focus-bg-a:rgba(21,36,31,.72);
+  --focus-bg-b:rgba(35,50,43,.70);
+  --focus-card:rgba(22,39,33,.58);
+  --focus-accent:#A8CFBC;
+  --focus-ring-active:#A8CFBC;
+  --focus-ring-rest:rgba(168,207,188,.23);
+  --focus-ring-glow:rgba(168,207,188,.30);
+  --focus-primary:#7FAE95;
+}
+body[data-theme="beige"] .focus-back{
+  --focus-bg-a:rgba(33,36,40,.72);
+  --focus-bg-b:rgba(48,47,43,.70);
+  --focus-card:rgba(32,36,40,.58);
+  --focus-accent:#E4C7A2;
+  --focus-ring-active:#E4C7A2;
+  --focus-ring-rest:rgba(228,199,162,.23);
+  --focus-ring-glow:rgba(228,199,162,.30);
+  --focus-primary:#B7956E;
+}
+body[data-theme="lavender"] .focus-back{
+  --focus-bg-a:rgba(28,29,43,.72);
+  --focus-bg-b:rgba(42,42,58,.70);
+  --focus-card:rgba(29,30,43,.58);
+  --focus-accent:#C9C5EE;
+  --focus-ring-active:#C9C5EE;
+  --focus-ring-rest:rgba(201,197,238,.23);
+  --focus-ring-glow:rgba(201,197,238,.30);
+  --focus-primary:#9B95C9;
+}
+body[data-theme="deep"] .focus-back{
+  --focus-bg-a:rgba(15,27,37,.76);
+  --focus-bg-b:rgba(24,39,51,.74);
+  --focus-card:rgba(17,31,42,.60);
+  --focus-accent:#9EC4E4;
+  --focus-ring-active:#9EC4E4;
+  --focus-ring-rest:rgba(158,196,228,.24);
+  --focus-ring-glow:rgba(158,196,228,.32);
+  --focus-primary:#78A8CD;
+}
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -3493,7 +3585,7 @@ body[data-theme="deep"] .focus-back{
 </div>
 
 
-<script src="app.js?v=2.8.14"></script>
+<script src="app.js?v=2.8.15"></script>
 
 </body>
 </html>
