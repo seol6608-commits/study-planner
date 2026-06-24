@@ -2927,6 +2927,80 @@ body[data-theme="deep"] .focus-back{
   }
 }
 
+
+/* ============================================================
+   V2.8.14 Focus Mode 최종 보정
+   - 제목 뒤 글로우/사각형 잔여 완전 제거
+   - Focus Mode 전체 배경 밝기 완화
+   - 모든 테마는 중립 어두운 배경 + 테마 포인트만 적용
+   ============================================================ */
+.focus-back{
+  --focus-bg-a:rgba(24,34,43,.88);
+  --focus-bg-b:rgba(38,50,60,.86);
+  --focus-card:rgba(24,35,45,.66);
+  --focus-accent:#8FB8D8;
+  --focus-text:#ffffff;
+  --focus-sub:rgba(255,255,255,.74);
+  --focus-chip-bg:rgba(255,255,255,.075);
+  --focus-chip-border:rgba(255,255,255,.16);
+  background:linear-gradient(135deg, var(--focus-bg-a), var(--focus-bg-b)) !important;
+}
+.focus-card{
+  background:var(--focus-card) !important;
+  box-shadow:0 22px 58px -34px rgba(0,0,0,.72), inset 0 1px 0 rgba(255,255,255,.07) !important;
+}
+.focus-card::before,
+.focus-card::after{
+  display:none !important;
+  content:none !important;
+}
+.focus-subject{
+  color:var(--focus-accent);
+  text-shadow:none !important;
+}
+.focus-topic{
+  background:var(--focus-chip-bg);
+  border-color:var(--focus-chip-border);
+  color:var(--focus-sub);
+}
+.focus-ring{
+  box-shadow:
+    0 0 0 14px rgba(255,255,255,.035),
+    0 0 42px -16px color-mix(in srgb, var(--focus-accent) 46%, transparent),
+    inset 0 0 26px rgba(0,0,0,.34);
+}
+.focus-actions{
+  border-top-color:rgba(255,255,255,.10);
+}
+.focus-actions button.primary{
+  background:color-mix(in srgb, var(--focus-accent) 64%, #4F7898);
+  border-color:color-mix(in srgb, var(--focus-accent) 50%, #4F7898);
+}
+body[data-theme="sage"] .focus-back{
+  --focus-bg-a:rgba(23,38,33,.88);
+  --focus-bg-b:rgba(37,52,45,.86);
+  --focus-card:rgba(23,38,33,.66);
+  --focus-accent:#A8CFBC;
+}
+body[data-theme="beige"] .focus-back{
+  --focus-bg-a:rgba(31,35,39,.88);
+  --focus-bg-b:rgba(44,45,43,.86);
+  --focus-card:rgba(31,35,39,.66);
+  --focus-accent:#E4C7A2;
+}
+body[data-theme="lavender"] .focus-back{
+  --focus-bg-a:rgba(29,30,43,.88);
+  --focus-bg-b:rgba(42,42,58,.86);
+  --focus-card:rgba(29,30,43,.66);
+  --focus-accent:#C9C5EE;
+}
+body[data-theme="deep"] .focus-back{
+  --focus-bg-a:rgba(16,28,38,.90);
+  --focus-bg-b:rgba(25,41,53,.88);
+  --focus-card:rgba(17,31,42,.68);
+  --focus-accent:#9EC4E4;
+}
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -3419,7 +3493,7 @@ body[data-theme="deep"] .focus-back{
 </div>
 
 
-<script src="app.js?v=2.8.13"></script>
+<script src="app.js?v=2.8.14"></script>
 
 </body>
 </html>
