@@ -3277,6 +3277,213 @@ body[data-theme="deep"] .focus-back{
   }
 }
 
+
+/* ============================================================
+   V2.8.17 Weekly Plan 연도/월 확장
+   - 2027년 이후도 사용 가능
+   - 월 탭은 동적 추가 + 가로 스크롤
+   - 텍스트는 한 줄 유지 / 말줄임 처리
+   ============================================================ */
+.weekly-yearbar{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  margin:0 0 10px;
+}
+.weekly-yearbar button{
+  width:30px;
+  height:28px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.72);
+  color:var(--text-sub);
+  cursor:pointer;
+  font-family:var(--font-label);
+  font-size:18px;
+  line-height:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.weekly-year-label{
+  min-width:82px;
+  text-align:center;
+  color:var(--text);
+  font-size:15px;
+  font-weight:500;
+  white-space:nowrap;
+}
+.weekly-month-strip{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex:1 1 auto;
+  overflow:hidden;
+}
+.weekly-month-tabs{
+  min-width:0;
+  flex:1 1 auto;
+  display:flex;
+  gap:6px;
+  flex-wrap:nowrap !important;
+  overflow-x:auto;
+  overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-x:contain;
+  scrollbar-width:thin;
+  padding:1px 2px 4px 0;
+}
+.weekly-month-tabs button,
+.weekly-month-add,
+.weekly-add-btn,
+.wpc-actions button{
+  white-space:nowrap;
+  word-break:keep-all;
+}
+.weekly-month-tabs button{
+  flex:0 0 auto;
+  max-width:58px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.weekly-month-add{
+  flex:0 0 auto;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.72);
+  color:var(--blue-deep);
+  border-radius:999px;
+  padding:7px 12px;
+  font-family:var(--font-ko);
+  font-size:13px;
+  cursor:pointer;
+}
+.weekly-toolbar{
+  align-items:center;
+  min-width:0;
+}
+.weekly-add-btn{
+  min-width:94px;
+}
+.wsc-row span,
+.wpc-title,
+.wpc-row span,
+.weekly-list-empty,
+.weekly-line span{
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.wpc-row{
+  align-items:center;
+  min-width:0;
+}
+.wpc-row b{
+  white-space:nowrap;
+}
+.weekly-plan-card{
+  min-width:0;
+  overflow:hidden;
+}
+.wpc-head{
+  min-width:0;
+}
+.wpc-title{
+  flex:1 1 auto;
+}
+.wpc-actions{
+  flex:0 0 auto;
+}
+.weekly-add-month-note{
+  color:var(--text-sub);
+  font-size:12.5px;
+  line-height:1.45;
+  margin-bottom:10px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.weekly-add-month-grid{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0,1fr));
+  gap:7px;
+}
+.weekly-add-month-grid button{
+  height:36px;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.76);
+  color:var(--text-sub);
+  font-family:var(--font-ko);
+  font-size:13px;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.weekly-add-month-grid button.active{
+  background:var(--blue-main);
+  border-color:var(--blue-main);
+  color:#fff;
+}
+.weekly-add-month-grid button.disabled{
+  opacity:.36;
+}
+.weekly-month-add-modal{
+  max-width:380px;
+}
+.weekly-edit-ymw .m-field{
+  min-width:0;
+}
+body[data-theme="deep"] .weekly-yearbar button,
+body[data-theme="deep"] .weekly-month-add,
+body[data-theme="deep"] .weekly-add-month-grid button{
+  background:rgba(255,255,255,.075);
+  color:var(--text);
+  border-color:var(--line);
+}
+body[data-theme="deep"] .weekly-add-month-grid button.active{
+  background:var(--blue-main);
+  color:#14232E;
+  border-color:var(--blue-main);
+}
+@media (max-width:720px){
+  .weekly-yearbar{
+    justify-content:space-between;
+    margin-bottom:8px;
+  }
+  .weekly-year-label{
+    flex:1 1 auto;
+  }
+  .weekly-toolbar{
+    flex-direction:column;
+    align-items:stretch;
+    gap:8px;
+  }
+  .weekly-month-strip{
+    width:100%;
+  }
+  .weekly-month-tabs{
+    padding-bottom:3px;
+  }
+  .weekly-month-add,
+  .weekly-add-btn{
+    flex:0 0 auto;
+  }
+  .weekly-add-btn{
+    width:100%;
+  }
+  .weekly-add-month-grid{
+    grid-template-columns:repeat(3, minmax(0,1fr));
+  }
+  .weekly-edit-ymw{
+    gap:7px;
+  }
+  .weekly-edit-ymw .m-field label{
+    white-space:nowrap;
+  }
+}
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -3505,11 +3712,34 @@ body[data-theme="deep"] .focus-back{
     <div class="weekly-modal-body">
       <button type="button" class="weekly-summary-toggle" id="weeklySummaryToggle">요약 보기</button>
       <div class="weekly-summary-grid" id="weeklySummaryGrid"></div>
+      <div class="weekly-yearbar">
+        <button type="button" id="weeklyPrevYear" aria-label="이전 연도">‹</button>
+        <div class="weekly-year-label" id="weeklyYearLabel">2026년</div>
+        <button type="button" id="weeklyNextYear" aria-label="다음 연도">›</button>
+      </div>
       <div class="weekly-toolbar">
-        <div class="weekly-month-tabs" id="weeklyMonthTabs"></div>
+        <div class="weekly-month-strip">
+          <div class="weekly-month-tabs" id="weeklyMonthTabs"></div>
+          <button type="button" class="weekly-month-add" id="weeklyAddMonth">+ 월</button>
+        </div>
         <button type="button" class="weekly-add-btn" id="weeklyAdd">+ 주차 추가</button>
       </div>
       <div class="weekly-plan-list" id="weeklyPlanList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 주간 계획 월 추가 모달 ===================== -->
+<div class="modal-back weekly-month-add-back" id="weeklyMonthAddBack">
+  <div class="modal weekly-month-add-modal" role="dialog" aria-modal="true">
+    <div class="m-head" id="weeklyMonthAddHead">월 추가</div>
+    <div class="m-body">
+      <div class="weekly-add-month-note" id="weeklyMonthAddNote">추가할 월을 선택하세요.</div>
+      <div class="weekly-add-month-grid" id="weeklyAddMonthGrid"></div>
+    </div>
+    <div class="m-actions">
+      <button class="btn-cancel" id="weeklyMonthAddCancel">취소</button>
+      <button class="btn-save" id="weeklyMonthAddSave">추가</button>
     </div>
   </div>
 </div>
@@ -3519,7 +3749,11 @@ body[data-theme="deep"] .focus-back{
   <div class="modal weekly-edit-modal" role="dialog" aria-modal="true">
     <div class="m-head" id="weeklyEditHead">주간 계획</div>
     <div class="m-body weekly-edit-body">
-      <div class="m-row">
+      <div class="m-row weekly-edit-ymw">
+        <div class="m-field">
+          <label>연도</label>
+          <select id="weeklyYear"></select>
+        </div>
         <div class="m-field">
           <label>월</label>
           <select id="weeklyMonth"></select>
@@ -3769,7 +4003,7 @@ body[data-theme="deep"] .focus-back{
 </div>
 
 
-<script src="app.js?v=2.8.16"></script>
+<script src="app.js?v=2.8.17"></script>
 
 </body>
 </html>

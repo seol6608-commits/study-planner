@@ -96,6 +96,13 @@ const LocalStorageAdapter = {
   },
   setWeeklyPlans(arr){
     try { localStorage.setItem("planner:weeklyPlans", JSON.stringify(arr)); } catch(e){}
+  },
+  getWeeklyPlanMonths(){
+    try { return JSON.parse(localStorage.getItem("planner:weeklyPlanMonths") || "[]"); }
+    catch(e){ return []; }
+  },
+  setWeeklyPlanMonths(arr){
+    try { localStorage.setItem("planner:weeklyPlanMonths", JSON.stringify(arr)); } catch(e){}
   }
 };
 
@@ -119,6 +126,8 @@ const CloudSyncAdapter = {
   async setExamRecords(arr){ /* TODO */ },
   async getWeeklyPlans(){ /* TODO */ return []; },
   async setWeeklyPlans(arr){ /* TODO */ },
+  async getWeeklyPlanMonths(){ /* TODO */ return []; },
+  async setWeeklyPlanMonths(arr){ /* TODO */ },
   async fetchEvents(){ /* TODO: 원격 events 컬렉션 읽기 */ return []; }
 };
 
@@ -145,10 +154,13 @@ let selectedTemplateId = null;
 let pinnedDdayIds = [];
 let examRecords = [];
 let weeklyPlans = [];
+let weeklyPlanMonths = [];
+let weeklyModalYear = null;
 let weeklyModalMonth = null;
 let weeklyEditingId = null;
 let weeklyEditDraft = null;
 let weeklySummaryOpen = false;
+let weeklyAddingMonth = null;
 let timerLogs = [];
 let activeFocusTimer = null;
 let focusTickHandle = null;
@@ -459,6 +471,36 @@ const WEEKLY_SUBJECT_META = {
   physics: { label:'물리', cls:'physics' },
   chemistry: { label:'화학', cls:'chemistry' }
 };
+function weeklyPlanId(year, month, week){
+  return `${year}-${String(month).padStart(2,'0')}-W${week}`;
+}
+function weeklyMonthKey(year, month){
+  return `${year}-${String(month).padStart(2,'0')}`;
+}
+function normalizeWeeklyMonthItem(x){
+  if(x == null) return null;
+  if(typeof x === 'number') return { year:selectedWeekInfo().year, month:Number(x) };
+  if(typeof x === 'string'){
+    const m = x.match(/^(\d{4})-(\d{1,2})$/);
+    if(m) return { year:Number(m[1]), month:Number(m[2]) };
+    const n = Number(x);
+    if(Number.isFinite(n)) return { year:selectedWeekInfo().year, month:n };
+  }
+  const year = Number(x.year);
+  const month = Number(x.month);
+  if(!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) return null;
+  return { year, month };
+}
+function selectedWeekInfo(){
+  const d = parseDate(AppState.selectedDate);
+  return { year:d.getFullYear(), month:d.getMonth()+1, week:weekOfMonth(d) };
+}
+function weekOfMonth(date){
+  const d = date instanceof Date ? new Date(date) : parseDate(date);
+  const first = new Date(d.getFullYear(), d.getMonth(), 1);
+  const offset = (first.getDay()+6)%7; // 월요일 시작
+  return Math.ceil((d.getDate() + offset) / 7);
+}
 function loadWeeklyPlans(){
   weeklyPlans = (Storage.getWeeklyPlans && Storage.getWeeklyPlans()) || [];
   if(!Array.isArray(weeklyPlans)) weeklyPlans = [];
@@ -478,18 +520,50 @@ function saveWeeklyPlans(sync){
   if(Storage.setWeeklyPlans) Storage.setWeeklyPlans(weeklyPlans);
   if(sync !== false) scheduleNotesSave();
 }
-function weeklyPlanId(year, month, week){
-  return `${year}-${String(month).padStart(2,'0')}-W${week}`;
+function loadWeeklyPlanMonths(){
+  let arr = [];
+  try{ arr = (Storage.getWeeklyPlanMonths && Storage.getWeeklyPlanMonths()) || []; }catch(e){ arr = []; }
+  if(!Array.isArray(arr)) arr = [];
+  const info = selectedWeekInfo();
+  const map = new Map();
+
+  // 저장된 월
+  arr.map(normalizeWeeklyMonthItem).filter(Boolean).forEach(x=>{
+    map.set(weeklyMonthKey(x.year, x.month), { year:x.year, month:x.month });
+  });
+
+  // 기존 데이터에서 월 복구
+  weeklyPlans.forEach(p=>{
+    if(Number.isFinite(Number(p.year)) && Number.isFinite(Number(p.month))){
+      map.set(weeklyMonthKey(Number(p.year), Number(p.month)), { year:Number(p.year), month:Number(p.month) });
+    }
+  });
+
+  // 최초 기본값: 선택 연도 기준 6/7/8월 + 선택 월
+  if(!map.size){
+    [6,7,8,info.month].forEach(m=> map.set(weeklyMonthKey(info.year, m), { year:info.year, month:m }));
+  }
+
+  weeklyPlanMonths = Array.from(map.values()).sort((a,b)=> a.year-b.year || a.month-b.month);
+  saveWeeklyPlanMonths(false);
 }
-function weekOfMonth(date){
-  const d = date instanceof Date ? new Date(date) : parseDate(date);
-  const first = new Date(d.getFullYear(), d.getMonth(), 1);
-  const offset = (first.getDay()+6)%7; // 월요일 시작
-  return Math.ceil((d.getDate() + offset) / 7);
+function saveWeeklyPlanMonths(sync){
+  // 중복 제거
+  const map = new Map();
+  weeklyPlanMonths.map(normalizeWeeklyMonthItem).filter(Boolean).forEach(x=>{
+    map.set(weeklyMonthKey(x.year, x.month), { year:x.year, month:x.month });
+  });
+  weeklyPlanMonths = Array.from(map.values()).sort((a,b)=> a.year-b.year || a.month-b.month);
+  if(Storage.setWeeklyPlanMonths) Storage.setWeeklyPlanMonths(weeklyPlanMonths);
+  if(sync !== false) scheduleNotesSave();
 }
-function selectedWeekInfo(){
-  const d = parseDate(AppState.selectedDate);
-  return { year:d.getFullYear(), month:d.getMonth()+1, week:weekOfMonth(d) };
+function ensureMonthRegistered(year, month){
+  year = Number(year); month = Number(month);
+  if(!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) return;
+  if(!weeklyPlanMonths.find(x => Number(x.year)===year && Number(x.month)===month)){
+    weeklyPlanMonths.push({ year, month });
+    saveWeeklyPlanMonths(false);
+  }
 }
 function planForWeek(year, month, week){
   return weeklyPlans.find(p=>Number(p.year)===Number(year) && Number(p.month)===Number(month) && Number(p.week)===Number(week));
@@ -498,7 +572,7 @@ function compactArea(arr){
   return (arr && arr.length) ? arr.join(', ') : '미지정';
 }
 function weeklyLineHtml(label, arr, cls){
-  return `<div class="weekly-line ${cls||''}"><b>${label}</b><span>${escapeHtml(compactArea(arr))}</span></div>`;
+  return `<div class="weekly-line ${cls||''}"><b>${label}</b><span title="${escapeHtml(compactArea(arr))}">${escapeHtml(compactArea(arr))}</span></div>`;
 }
 function renderWeeklyCurrent(){
   const el = document.getElementById('weeklyCurrent');
@@ -515,15 +589,33 @@ function renderWeeklyCurrent(){
     + weeklyLineHtml('물리', plan.physics, 'physics')
     + weeklyLineHtml('화학', plan.chemistry, 'chemistry');
 }
-function weeklyMonths(){
+function weeklyYears(){
   const info = selectedWeekInfo();
-  const set = new Set([6,7,8, info.month]);
-  weeklyPlans.forEach(p => { if(Number(p.year) === Number(info.year)) set.add(Number(p.month)); });
-  return Array.from(set).filter(m=>m>=1 && m<=12).sort((a,b)=>a-b);
+  const set = new Set([info.year]);
+  weeklyPlanMonths.forEach(x => set.add(Number(x.year)));
+  weeklyPlans.forEach(p => set.add(Number(p.year)));
+  if(weeklyModalYear) set.add(Number(weeklyModalYear));
+  return Array.from(set).filter(y=>Number.isFinite(y)).sort((a,b)=>a-b);
 }
-function ensureWeeklyModalMonth(){
+function weeklyMonths(year){
+  year = Number(year);
+  return weeklyPlanMonths
+    .filter(x => Number(x.year) === year)
+    .map(x => Number(x.month))
+    .filter(m => m>=1 && m<=12)
+    .sort((a,b)=>a-b);
+}
+function ensureWeeklyModalYM(){
   const info = selectedWeekInfo();
-  if(!weeklyModalMonth || !weeklyMonths().includes(Number(weeklyModalMonth))) weeklyModalMonth = info.month;
+  if(!weeklyModalYear) weeklyModalYear = info.year;
+  const months = weeklyMonths(weeklyModalYear);
+  if(!months.length){
+    weeklyModalMonth = null;
+    return;
+  }
+  if(!weeklyModalMonth || !months.includes(Number(weeklyModalMonth))){
+    weeklyModalMonth = (weeklyModalYear === info.year && months.includes(info.month)) ? info.month : months[0];
+  }
 }
 function topAndLowForSubject(key){
   const all = WEEKLY_AREAS[key];
@@ -543,16 +635,22 @@ function renderWeeklySummary(){
     const { top, low } = topAndLowForSubject(key);
     return `<div class="weekly-summary-card ${meta.cls}">`
       + `<div class="wsc-title">${meta.label}</div>`
-      + `<div class="wsc-row"><b>많이</b><span>${escapeHtml(top.length ? top.join(', ') : '기록 없음')}</span></div>`
-      + `<div class="wsc-row"><b>덜함</b><span>${escapeHtml(low.length ? low.join(', ') : '기록 없음')}</span></div>`
+      + `<div class="wsc-row"><b>많이</b><span title="${escapeHtml(top.join(', ') || '기록 없음')}">${escapeHtml(top.length ? top.join(', ') : '기록 없음')}</span></div>`
+      + `<div class="wsc-row"><b>덜함</b><span title="${escapeHtml(low.join(', ') || '기록 없음')}">${escapeHtml(low.length ? low.join(', ') : '기록 없음')}</span></div>`
       + `</div>`;
   }).join('');
+}
+function renderWeeklyYearBar(){
+  ensureWeeklyModalYM();
+  const label = document.getElementById('weeklyYearLabel');
+  if(label) label.textContent = `${weeklyModalYear}년`;
 }
 function renderWeeklyMonthTabs(){
   const tabs = document.getElementById('weeklyMonthTabs');
   if(!tabs) return;
-  ensureWeeklyModalMonth();
-  tabs.innerHTML = weeklyMonths().map(m => `<button type="button" class="${Number(m)===Number(weeklyModalMonth)?'active':''}" data-month="${m}">${m}월</button>`).join('');
+  ensureWeeklyModalYM();
+  const months = weeklyMonths(weeklyModalYear);
+  tabs.innerHTML = months.map(m => `<button type="button" class="${Number(m)===Number(weeklyModalMonth)?'active':''}" data-month="${m}" title="${weeklyModalYear}년 ${m}월">${m}월</button>`).join('');
   tabs.querySelectorAll('button').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       weeklyModalMonth = Number(btn.dataset.month);
@@ -562,22 +660,26 @@ function renderWeeklyMonthTabs(){
 }
 function planCardHtml(plan){
   return `<div class="weekly-plan-card" data-id="${escapeHtml(plan.id)}">`
-    + `<div class="wpc-head"><div class="wpc-title">${plan.month}월 ${plan.week}주차</div>`
+    + `<div class="wpc-head"><div class="wpc-title" title="${plan.year}년 ${plan.month}월 ${plan.week}주차">${plan.month}월 ${plan.week}주차</div>`
     + `<div class="wpc-actions"><button type="button" class="edit">수정</button><button type="button" class="delete">삭제</button></div></div>`
-    + `<div class="wpc-row math"><b>수학</b><span>${escapeHtml(compactArea(plan.math))}</span></div>`
-    + `<div class="wpc-row physics"><b>물리</b><span>${escapeHtml(compactArea(plan.physics))}</span></div>`
-    + `<div class="wpc-row chemistry"><b>화학</b><span>${escapeHtml(compactArea(plan.chemistry))}</span></div>`
+    + `<div class="wpc-row math"><b>수학</b><span title="${escapeHtml(compactArea(plan.math))}">${escapeHtml(compactArea(plan.math))}</span></div>`
+    + `<div class="wpc-row physics"><b>물리</b><span title="${escapeHtml(compactArea(plan.physics))}">${escapeHtml(compactArea(plan.physics))}</span></div>`
+    + `<div class="wpc-row chemistry"><b>화학</b><span title="${escapeHtml(compactArea(plan.chemistry))}">${escapeHtml(compactArea(plan.chemistry))}</span></div>`
     + `</div>`;
 }
 function renderWeeklyPlanList(){
   const list = document.getElementById('weeklyPlanList');
   if(!list) return;
-  const info = selectedWeekInfo();
+  ensureWeeklyModalYM();
+  if(!weeklyModalMonth){
+    list.innerHTML = `<div class="weekly-list-empty">${weeklyModalYear}년에 등록된 월이 없습니다.<br>+ 월 버튼으로 추가하세요.</div>`;
+    return;
+  }
   const plans = weeklyPlans
-    .filter(p => Number(p.year) === Number(info.year) && Number(p.month) === Number(weeklyModalMonth))
+    .filter(p => Number(p.year) === Number(weeklyModalYear) && Number(p.month) === Number(weeklyModalMonth))
     .sort((a,b)=> Number(a.week)-Number(b.week));
   if(!plans.length){
-    list.innerHTML = `<div class="weekly-list-empty">${weeklyModalMonth}월 주간 계획이 없습니다.<br>+ 주차 추가로 입력하세요.</div>`;
+    list.innerHTML = `<div class="weekly-list-empty">${weeklyModalYear}년 ${weeklyModalMonth}월 주간 계획이 없습니다.<br>+ 주차 추가로 입력하세요.</div>`;
   } else {
     list.innerHTML = plans.map(planCardHtml).join('');
   }
@@ -596,13 +698,16 @@ function renderWeeklyPlanList(){
 }
 function renderWeeklyModal(){
   renderWeeklySummary();
+  renderWeeklyYearBar();
   renderWeeklyMonthTabs();
   renderWeeklyPlanList();
   const tgl = document.getElementById('weeklySummaryToggle');
   if(tgl) tgl.textContent = weeklySummaryOpen ? '요약 접기' : '요약 보기';
 }
 function openWeeklyModal(){
-  ensureWeeklyModalMonth();
+  const info = selectedWeekInfo();
+  if(!weeklyModalYear) weeklyModalYear = info.year;
+  ensureWeeklyModalYM();
   weeklySummaryOpen = window.matchMedia && window.matchMedia('(min-width:721px)').matches;
   renderWeeklyModal();
   document.getElementById('weeklyBack')?.classList.add('open');
@@ -610,14 +715,22 @@ function openWeeklyModal(){
 function closeWeeklyModal(){
   document.getElementById('weeklyBack')?.classList.remove('open');
 }
-function fillWeeklySelects(month, week){
+function yearOptions(baseYear){
+  const info = selectedWeekInfo();
+  const set = new Set([info.year, baseYear]);
+  weeklyYears().forEach(y=>set.add(y));
+  for(let y=Number(baseYear)-1; y<=Number(baseYear)+5; y++) set.add(y);
+  return Array.from(set).filter(y=>Number.isFinite(y)).sort((a,b)=>a-b);
+}
+function fillWeeklySelects(year, month, week){
+  const ySel = document.getElementById('weeklyYear');
   const mSel = document.getElementById('weeklyMonth');
   const wSel = document.getElementById('weeklyWeek');
-  if(!mSel || !wSel) return;
-  const months = weeklyMonths();
-  if(!months.includes(Number(month))) months.push(Number(month));
-  mSel.innerHTML = months.sort((a,b)=>a-b).map(m=>`<option value="${m}">${m}월</option>`).join('');
+  if(!ySel || !mSel || !wSel) return;
+  ySel.innerHTML = yearOptions(year).map(y=>`<option value="${y}">${y}년</option>`).join('');
+  mSel.innerHTML = Array.from({length:12},(_,i)=>i+1).map(m=>`<option value="${m}">${m}월</option>`).join('');
   wSel.innerHTML = [1,2,3,4,5,6].map(w=>`<option value="${w}">${w}주차</option>`).join('');
+  ySel.value = String(year);
   mSel.value = String(month);
   wSel.value = String(week);
 }
@@ -641,10 +754,10 @@ function openWeeklyEdit(id){
   const info = selectedWeekInfo();
   const existing = id ? weeklyPlans.find(p=>p.id === id) : null;
   weeklyEditingId = existing ? existing.id : null;
-  const base = existing || { year:info.year, month:weeklyModalMonth || info.month, week:info.week, math:[], physics:[], chemistry:[] };
+  const base = existing || { year:weeklyModalYear || info.year, month:weeklyModalMonth || info.month, week:info.week, math:[], physics:[], chemistry:[] };
   weeklyEditDraft = JSON.parse(JSON.stringify(base));
-  document.getElementById('weeklyEditHead').textContent = existing ? `${base.month}월 ${base.week}주차 계획 수정` : '주간 계획 추가';
-  fillWeeklySelects(base.month, base.week);
+  document.getElementById('weeklyEditHead').textContent = existing ? `${base.year}년 ${base.month}월 ${base.week}주차 계획 수정` : '주간 계획 추가';
+  fillWeeklySelects(base.year, base.month, base.week);
   renderWeeklyChipGroup('weeklyMathChips', 'math', base.math);
   renderWeeklyChipGroup('weeklyPhysicsChips', 'physics', base.physics);
   renderWeeklyChipGroup('weeklyChemistryChips', 'chemistry', base.chemistry);
@@ -657,11 +770,12 @@ function closeWeeklyEdit(){
 }
 function saveWeeklyEdit(){
   const info = selectedWeekInfo();
+  const year = Number(document.getElementById('weeklyYear')?.value || info.year);
   const month = Number(document.getElementById('weeklyMonth')?.value || info.month);
   const week = Number(document.getElementById('weeklyWeek')?.value || info.week);
-  const id = weeklyPlanId(info.year, month, week);
+  const id = weeklyPlanId(year, month, week);
   const plan = {
-    id, year: info.year, month, week,
+    id, year, month, week,
     math: chipValues('weeklyMathChips'),
     physics: chipValues('weeklyPhysicsChips'),
     chemistry: chipValues('weeklyChemistryChips'),
@@ -671,8 +785,11 @@ function saveWeeklyEdit(){
   weeklyPlans = weeklyPlans.filter(p => p.id !== weeklyEditingId && p.id !== id);
   weeklyPlans.push(plan);
   weeklyPlans.sort((a,b)=> a.year-b.year || a.month-b.month || a.week-b.week);
+  ensureMonthRegistered(year, month);
+  weeklyModalYear = year;
   weeklyModalMonth = month;
   saveWeeklyPlans();
+  saveWeeklyPlanMonths(false);
   closeWeeklyEdit();
   renderWeeklyCurrent();
   renderWeeklyModal();
@@ -680,16 +797,67 @@ function saveWeeklyEdit(){
 function deleteWeeklyPlan(id){
   const plan = weeklyPlans.find(p=>p.id===id);
   if(!plan) return;
-  if(!confirm(`${plan.month}월 ${plan.week}주차 계획을 삭제할까요?`)) return;
+  if(!confirm(`${plan.year}년 ${plan.month}월 ${plan.week}주차 계획을 삭제할까요?`)) return;
   weeklyPlans = weeklyPlans.filter(p=>p.id!==id);
   saveWeeklyPlans();
   renderWeeklyCurrent();
+  renderWeeklyModal();
+}
+function openWeeklyMonthAdd(){
+  ensureWeeklyModalYM();
+  weeklyAddingMonth = null;
+  const head = document.getElementById('weeklyMonthAddHead');
+  const note = document.getElementById('weeklyMonthAddNote');
+  if(head) head.textContent = `${weeklyModalYear}년 월 추가`;
+  if(note) note.textContent = `${weeklyModalYear}년에 추가할 월을 선택하세요.`;
+  const grid = document.getElementById('weeklyAddMonthGrid');
+  const existing = new Set(weeklyMonths(weeklyModalYear));
+  if(grid){
+    grid.innerHTML = Array.from({length:12},(_,i)=>i+1).map(m=>{
+      const cls = existing.has(m) ? 'disabled' : '';
+      return `<button type="button" class="${cls}" data-month="${m}" ${existing.has(m)?'title="이미 추가된 월"':''}>${m}월</button>`;
+    }).join('');
+    grid.querySelectorAll('button').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const m = Number(btn.dataset.month);
+        if(!m) return;
+        weeklyAddingMonth = m;
+        grid.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+  }
+  document.getElementById('weeklyMonthAddBack')?.classList.add('open');
+}
+function closeWeeklyMonthAdd(){
+  weeklyAddingMonth = null;
+  document.getElementById('weeklyMonthAddBack')?.classList.remove('open');
+}
+function saveWeeklyMonthAdd(){
+  if(!weeklyAddingMonth) return;
+  ensureMonthRegistered(weeklyModalYear, weeklyAddingMonth);
+  weeklyModalMonth = weeklyAddingMonth;
+  saveWeeklyPlanMonths();
+  closeWeeklyMonthAdd();
   renderWeeklyModal();
 }
 function bindWeeklyUI(){
   document.getElementById('weeklyOpen')?.addEventListener('click', openWeeklyModal);
   document.getElementById('weeklyClose')?.addEventListener('click', closeWeeklyModal);
   document.getElementById('weeklyAdd')?.addEventListener('click', ()=>openWeeklyEdit(null));
+  document.getElementById('weeklyAddMonth')?.addEventListener('click', openWeeklyMonthAdd);
+  document.getElementById('weeklyMonthAddCancel')?.addEventListener('click', closeWeeklyMonthAdd);
+  document.getElementById('weeklyMonthAddSave')?.addEventListener('click', saveWeeklyMonthAdd);
+  document.getElementById('weeklyPrevYear')?.addEventListener('click', ()=>{
+    weeklyModalYear = Number(weeklyModalYear || selectedWeekInfo().year) - 1;
+    weeklyModalMonth = null;
+    renderWeeklyModal();
+  });
+  document.getElementById('weeklyNextYear')?.addEventListener('click', ()=>{
+    weeklyModalYear = Number(weeklyModalYear || selectedWeekInfo().year) + 1;
+    weeklyModalMonth = null;
+    renderWeeklyModal();
+  });
   document.getElementById('weeklyEditCancel')?.addEventListener('click', closeWeeklyEdit);
   document.getElementById('weeklyEditSave')?.addEventListener('click', saveWeeklyEdit);
   document.getElementById('weeklySummaryToggle')?.addEventListener('click', ()=>{
@@ -702,6 +870,8 @@ function bindWeeklyUI(){
   if(back) back.addEventListener('click', e=>{ if(e.target === back) closeWeeklyModal(); });
   const editBack = document.getElementById('weeklyEditBack');
   if(editBack) editBack.addEventListener('click', e=>{ if(e.target === editBack) closeWeeklyEdit(); });
+  const monthBack = document.getElementById('weeklyMonthAddBack');
+  if(monthBack) monthBack.addEventListener('click', e=>{ if(e.target === monthBack) closeWeeklyMonthAdd(); });
 }
 
 function eventSubText(e, baseDate){
@@ -2799,6 +2969,7 @@ document.addEventListener('click', function(e){
   loadPinnedDday();
   loadExamRecords();
   loadWeeklyPlans();
+  loadWeeklyPlanMonths();
   bindWeeklyUI();
   EventsStore.reattachTodoMeta();
   const t = parseDate(todayStr());
