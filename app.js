@@ -2727,8 +2727,12 @@ function updateFocusView(){
   const statusEl = document.getElementById('focusStatus');
   const pauseBtn = document.getElementById('focusPause');
 
-  if(subEl) subEl.textContent = (activeFocusTimer.memo || '').trim() || '집중 중';
-  if(topicEl) topicEl.textContent = subject;
+  const focusMemo = (activeFocusTimer.memo || '').trim();
+  if(subEl) subEl.textContent = focusMemo || subject;
+  if(topicEl){
+    topicEl.textContent = focusMemo ? subject : '메모 없음';
+    topicEl.classList.toggle('empty', !focusMemo);
+  }
   if(timeEl) timeEl.textContent = fmtHMS(elapsed);
   if(ringEl) ringEl.style.setProperty('--progress', `${progressDeg}deg`);
   if(startEl) startEl.textContent = `시작 ${fmtHMFromDate(activeFocusTimer.startAt || Date.now())}`;

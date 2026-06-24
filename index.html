@@ -2793,6 +2793,140 @@ body[data-theme="deep"] .focus-back{
   }
 }
 
+
+/* ============================================================
+   V2.8.13 Focus Mode 마감 보정
+   - 제목 뒤 사각형 글로우 제거
+   - 글로우를 카드 배경이 아닌 독립 원형 blur 레이어로 분리
+   - 테마색은 포인트로만 반영하고 어두운 집중감 유지
+   - 메모 없음: 큰 제목=과목명, 작은 칩=메모 없음
+   ============================================================ */
+.focus-back{
+  --focus-bg-a:rgba(15,28,39,.97);
+  --focus-bg-b:rgba(28,45,58,.96);
+  --focus-glow:rgba(94,135,168,.28);
+  --focus-card:rgba(18,31,42,.58);
+  --focus-accent:#8FB8D8;
+  --focus-text:#ffffff;
+  --focus-sub:rgba(255,255,255,.72);
+  --focus-chip-bg:rgba(255,255,255,.075);
+  --focus-chip-border:rgba(255,255,255,.15);
+  background:
+    radial-gradient(780px 500px at 50% 15%, var(--focus-glow), transparent 62%),
+    linear-gradient(135deg, var(--focus-bg-a), var(--focus-bg-b)) !important;
+}
+.focus-card{
+  position:relative;
+  overflow:hidden;
+  background:var(--focus-card) !important;
+}
+.focus-card::before,
+.focus-card::after{
+  content:"";
+  position:absolute;
+  pointer-events:none;
+  border-radius:50%;
+  z-index:0;
+}
+.focus-card::before{
+  width:360px;
+  height:190px;
+  left:50%;
+  top:70px;
+  transform:translateX(-50%);
+  background:var(--focus-accent);
+  opacity:.15;
+  filter:blur(54px);
+}
+.focus-card::after{
+  width:260px;
+  height:260px;
+  left:50%;
+  top:230px;
+  transform:translateX(-50%);
+  background:var(--focus-accent);
+  opacity:.10;
+  filter:blur(70px);
+}
+.focus-card > *{
+  position:relative;
+  z-index:1;
+}
+.focus-subject{
+  max-width:min(660px, 76vw);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  line-height:1.08;
+  color:var(--focus-accent);
+  text-shadow:0 0 18px rgba(255,255,255,.10);
+}
+.focus-topic{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  margin-top:10px;
+  max-width:min(420px, 66vw);
+  min-height:24px;
+  padding:3px 12px;
+  border-radius:999px;
+  border:1px solid var(--focus-chip-border);
+  background:var(--focus-chip-bg);
+  color:var(--focus-sub);
+  font-family:var(--font-ko);
+  font-size:13px;
+  letter-spacing:.05em;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.focus-topic.empty{
+  opacity:.74;
+}
+body[data-theme="sage"] .focus-back{
+  --focus-bg-a:rgba(14,29,25,.97);
+  --focus-bg-b:rgba(25,44,36,.96);
+  --focus-glow:rgba(111,143,128,.27);
+  --focus-accent:#A8CFBC;
+}
+body[data-theme="beige"] .focus-back{
+  --focus-bg-a:rgba(25,29,34,.97);
+  --focus-bg-b:rgba(42,39,34,.96);
+  --focus-glow:rgba(196,161,121,.24);
+  --focus-accent:#E4C7A2;
+  --focus-card:rgba(25,31,38,.58);
+}
+body[data-theme="lavender"] .focus-back{
+  --focus-bg-a:rgba(24,25,42,.97);
+  --focus-bg-b:rgba(38,37,58,.96);
+  --focus-glow:rgba(138,135,174,.27);
+  --focus-accent:#C9C5EE;
+}
+body[data-theme="deep"] .focus-back{
+  --focus-bg-a:rgba(10,21,29,.98);
+  --focus-bg-b:rgba(20,35,47,.97);
+  --focus-glow:rgba(126,165,196,.24);
+  --focus-accent:#9EC4E4;
+  --focus-card:rgba(14,27,37,.62);
+}
+@media (max-width:600px){
+  .focus-card::before{
+    width:270px;
+    height:160px;
+    top:58px;
+  }
+  .focus-subject{
+    max-width:82vw;
+    font-size:34px;
+  }
+  .focus-topic{
+    max-width:72vw;
+    font-size:12px;
+    min-height:22px;
+    padding:2px 10px;
+  }
+}
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -3285,7 +3419,7 @@ body[data-theme="deep"] .focus-back{
 </div>
 
 
-<script src="app.js?v=2.8.12"></script>
+<script src="app.js?v=2.8.13"></script>
 
 </body>
 </html>
