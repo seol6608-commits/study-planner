@@ -3484,6 +3484,53 @@ body[data-theme="deep"] .weekly-add-month-grid button.active{
   }
 }
 
+
+/* ============================================================
+   V2.8.18 Smartphone template modal FAB overlap fix
+   - 스마트폰에서 템플릿 모달이 열리면 하단 FAB 숨김
+   - 템플릿 적용/닫기 버튼이 하단 고정 버튼에 가려지지 않도록 보정
+   - 아이패드/넓은 화면 영향 없음
+   ============================================================ */
+@media (max-width:600px){
+  body.template-modal-open .fab-bar{
+    display:none !important;
+    pointer-events:none !important;
+  }
+  body.template-modal-open .theme-float-btn{
+    display:none !important;
+  }
+  .template-modal{
+    width:calc(100vw - 18px);
+    max-width:none;
+    max-height:calc(100vh - 22px);
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  .template-modal .template-body{
+    flex:1 1 auto;
+    min-height:0;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:18px;
+  }
+  .template-modal .template-actions{
+    flex:0 0 auto;
+    position:sticky;
+    bottom:0;
+    z-index:3;
+    background:linear-gradient(to top, var(--paper) 78%, rgba(255,255,255,0));
+    padding-top:10px;
+    padding-bottom:calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+  .template-modal .template-actions .btn-save{
+    min-height:44px;
+  }
+  .template-modal .template-actions .btn-cancel{
+    min-height:40px;
+  }
+}
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -4003,7 +4050,7 @@ body[data-theme="deep"] .weekly-add-month-grid button.active{
 </div>
 
 
-<script src="app.js?v=2.8.17"></script>
+<script src="app.js?v=2.8.18"></script>
 
 </body>
 </html>

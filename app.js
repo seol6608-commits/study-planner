@@ -2026,8 +2026,12 @@ function openTemplateModal(){
   if(!studyTemplates.length) loadTemplates();
   renderTemplateModal();
   templateBack.classList.add('open');
+  document.body.classList.add('template-modal-open');
 }
-function closeTemplateModal(){ templateBack.classList.remove('open'); }
+function closeTemplateModal(){
+  templateBack.classList.remove('open');
+  document.body.classList.remove('template-modal-open');
+}
 function renderTemplateModal(){
   const list = document.getElementById('tplList');
   const tpl = currentTemplate();
