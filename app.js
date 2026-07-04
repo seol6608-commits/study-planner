@@ -103,6 +103,13 @@ const LocalStorageAdapter = {
   },
   setWeeklyPlanMonths(arr){
     try { localStorage.setItem("planner:weeklyPlanMonths", JSON.stringify(arr)); } catch(e){}
+  },
+  getWeeklyDayNotes(){
+    try { return JSON.parse(localStorage.getItem("planner:weeklyDayNotes") || "[]"); }
+    catch(e){ return []; }
+  },
+  setWeeklyDayNotes(arr){
+    try { localStorage.setItem("planner:weeklyDayNotes", JSON.stringify(arr)); } catch(e){}
   }
 };
 
@@ -128,6 +135,8 @@ const CloudSyncAdapter = {
   async setWeeklyPlans(arr){ /* TODO */ },
   async getWeeklyPlanMonths(){ /* TODO */ return []; },
   async setWeeklyPlanMonths(arr){ /* TODO */ },
+  async getWeeklyDayNotes(){ /* TODO */ return []; },
+  async setWeeklyDayNotes(arr){ /* TODO */ },
   async fetchEvents(){ /* TODO: 원격 events 컬렉션 읽기 */ return []; }
 };
 
@@ -161,6 +170,11 @@ let weeklyEditingId = null;
 let weeklyEditDraft = null;
 let weeklySummaryOpen = false;
 let weeklyAddingMonth = null;
+let weeklyDayNotes = [];
+let weeklyDetailYear = null;
+let weeklyDetailMonth = null;
+let weeklyDetailWeek = null;
+let weeklyDetailAddingMonth = null;
 let timerLogs = [];
 let activeFocusTimer = null;
 let focusTickHandle = null;
@@ -874,6 +888,242 @@ function bindWeeklyUI(){
   if(monthBack) monthBack.addEventListener('click', e=>{ if(e.target === monthBack) closeWeeklyMonthAdd(); });
 }
 
+
+/* ============================================================================
+ *  V2.8.19 주간 상세 계획 — 요일별 메모
+ * ========================================================================== */
+const WEEKLY_DAY_LABELS = [
+  { key:'mon', label:'월요일' },
+  { key:'tue', label:'화요일' },
+  { key:'wed', label:'수요일' },
+  { key:'thu', label:'목요일' },
+  { key:'fri', label:'금요일' },
+  { key:'sat', label:'토요일' },
+  { key:'sun', label:'일요일' }
+];
+function weeklyDetailId(year, month, week){
+  return `${year}-${String(month).padStart(2,'0')}-W${week}`;
+}
+function normalizeWeeklyDayNote(x){
+  if(!x) return null;
+  const year = Number(x.year), month = Number(x.month), week = Number(x.week);
+  if(!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(week)) return null;
+  const notes = x.notes && typeof x.notes === 'object' ? x.notes : {};
+  const clean = {};
+  WEEKLY_DAY_LABELS.forEach(d => clean[d.key] = String(notes[d.key] || ''));
+  return {
+    id: x.id || weeklyDetailId(year, month, week),
+    year, month, week,
+    notes: clean,
+    createdAt: x.createdAt || Date.now(),
+    updatedAt: x.updatedAt || x.createdAt || Date.now()
+  };
+}
+function loadWeeklyDayNotes(){
+  weeklyDayNotes = (Storage.getWeeklyDayNotes && Storage.getWeeklyDayNotes()) || [];
+  if(!Array.isArray(weeklyDayNotes)) weeklyDayNotes = [];
+  weeklyDayNotes = weeklyDayNotes.map(normalizeWeeklyDayNote).filter(Boolean);
+}
+function saveWeeklyDayNotes(sync){
+  weeklyDayNotes = weeklyDayNotes.map(normalizeWeeklyDayNote).filter(Boolean);
+  if(Storage.setWeeklyDayNotes) Storage.setWeeklyDayNotes(weeklyDayNotes);
+  if(sync !== false) scheduleNotesSave();
+}
+function weeklyDetailFor(year, month, week){
+  return weeklyDayNotes.find(x => Number(x.year)===Number(year) && Number(x.month)===Number(month) && Number(x.week)===Number(week));
+}
+function weeklyDetailFilledDays(note){
+  if(!note || !note.notes) return 0;
+  return WEEKLY_DAY_LABELS.filter(d => String(note.notes[d.key] || '').trim()).length;
+}
+function renderWeeklyDetailSummary(){
+  const el = document.getElementById('weeklyDetailCurrent');
+  if(!el) return;
+  const info = selectedWeekInfo();
+  const note = weeklyDetailFor(info.year, info.month, info.week);
+  const count = weeklyDetailFilledDays(note);
+  el.innerHTML = `<div class="wdc-title">${info.month}월 ${info.week}주차 상세</div>`
+    + `<div class="wdc-line">${count ? `${count}개 요일 메모 있음` : '요일별 상세 메모 없음'}</div>`;
+}
+function ensureWeeklyDetailYM(){
+  const info = selectedWeekInfo();
+  if(!weeklyDetailYear) weeklyDetailYear = info.year;
+  const months = weeklyMonths(weeklyDetailYear);
+  if(!months.length){
+    weeklyDetailMonth = null;
+    return;
+  }
+  if(!weeklyDetailMonth || !months.includes(Number(weeklyDetailMonth))){
+    weeklyDetailMonth = (weeklyDetailYear === info.year && months.includes(info.month)) ? info.month : months[0];
+  }
+  if(!weeklyDetailWeek) weeklyDetailWeek = (weeklyDetailYear === info.year && weeklyDetailMonth === info.month) ? info.week : 1;
+}
+function renderWeeklyDetailYearBar(){
+  ensureWeeklyDetailYM();
+  const label = document.getElementById('weeklyDetailYearLabel');
+  if(label) label.textContent = `${weeklyDetailYear}년`;
+}
+function renderWeeklyDetailMonthTabs(){
+  const tabs = document.getElementById('weeklyDetailMonthTabs');
+  if(!tabs) return;
+  ensureWeeklyDetailYM();
+  const months = weeklyMonths(weeklyDetailYear);
+  tabs.innerHTML = months.map(m => `<button type="button" class="${Number(m)===Number(weeklyDetailMonth)?'active':''}" data-month="${m}" title="${weeklyDetailYear}년 ${m}월">${m}월</button>`).join('');
+  tabs.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      weeklyDetailMonth = Number(btn.dataset.month);
+      weeklyDetailWeek = 1;
+      renderWeeklyDetailModal();
+    });
+  });
+}
+function renderWeeklyDetailWeekTabs(){
+  const tabs = document.getElementById('weeklyDetailWeekTabs');
+  if(!tabs) return;
+  if(!weeklyDetailMonth){
+    tabs.innerHTML = '';
+    return;
+  }
+  tabs.innerHTML = [1,2,3,4,5,6].map(w => `<button type="button" class="${Number(w)===Number(weeklyDetailWeek)?'active':''}" data-week="${w}">${w}주차</button>`).join('');
+  tabs.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      weeklyDetailWeek = Number(btn.dataset.week);
+      renderWeeklyDetailModal();
+    });
+  });
+}
+function renderWeeklyDetailDays(){
+  const list = document.getElementById('weeklyDetailDayList');
+  if(!list) return;
+  ensureWeeklyDetailYM();
+  if(!weeklyDetailMonth){
+    list.innerHTML = `<div class="weekly-list-empty">${weeklyDetailYear}년에 등록된 월이 없습니다.<br>+ 월 버튼으로 추가하세요.</div>`;
+    return;
+  }
+  const note = weeklyDetailFor(weeklyDetailYear, weeklyDetailMonth, weeklyDetailWeek);
+  const notes = note && note.notes ? note.notes : {};
+  list.innerHTML = WEEKLY_DAY_LABELS.map(d => {
+    const val = escapeHtml(String(notes[d.key] || ''));
+    return `<div class="weekly-detail-day">`
+      + `<div class="wd-day-label">${d.label}</div>`
+      + `<textarea data-day="${d.key}" placeholder="${d.label} 상세 계획 입력">${val}</textarea>`
+      + `</div>`;
+  }).join('');
+}
+function renderWeeklyDetailModal(){
+  renderWeeklyDetailYearBar();
+  renderWeeklyDetailMonthTabs();
+  renderWeeklyDetailWeekTabs();
+  renderWeeklyDetailDays();
+}
+function openWeeklyDetailModal(){
+  const info = selectedWeekInfo();
+  weeklyDetailYear = info.year;
+  weeklyDetailMonth = info.month;
+  weeklyDetailWeek = info.week;
+  ensureMonthRegistered(weeklyDetailYear, weeklyDetailMonth);
+  renderWeeklyDetailModal();
+  document.getElementById('weeklyDetailBack')?.classList.add('open');
+  document.body.classList.add('weekly-detail-open');
+}
+function closeWeeklyDetailModal(){
+  document.getElementById('weeklyDetailBack')?.classList.remove('open');
+  document.body.classList.remove('weekly-detail-open');
+}
+function saveWeeklyDetail(){
+  if(!weeklyDetailYear || !weeklyDetailMonth || !weeklyDetailWeek) return;
+  const list = document.getElementById('weeklyDetailDayList');
+  const notes = {};
+  WEEKLY_DAY_LABELS.forEach(d => notes[d.key] = '');
+  if(list){
+    list.querySelectorAll('textarea[data-day]').forEach(ta=>{
+      notes[ta.dataset.day] = ta.value || '';
+    });
+  }
+  const id = weeklyDetailId(weeklyDetailYear, weeklyDetailMonth, weeklyDetailWeek);
+  const old = weeklyDayNotes.find(x => x.id === id);
+  const item = {
+    id,
+    year: weeklyDetailYear,
+    month: weeklyDetailMonth,
+    week: weeklyDetailWeek,
+    notes,
+    createdAt: old ? old.createdAt : Date.now(),
+    updatedAt: Date.now()
+  };
+  weeklyDayNotes = weeklyDayNotes.filter(x => x.id !== id);
+  weeklyDayNotes.push(item);
+  weeklyDayNotes.sort((a,b)=> a.year-b.year || a.month-b.month || a.week-b.week);
+  ensureMonthRegistered(weeklyDetailYear, weeklyDetailMonth);
+  saveWeeklyDayNotes();
+  renderWeeklyDetailSummary();
+  renderWeeklyDetailModal();
+}
+function openWeeklyDetailMonthAdd(){
+  ensureWeeklyDetailYM();
+  weeklyDetailAddingMonth = null;
+  const head = document.getElementById('weeklyDetailMonthHead');
+  const note = document.getElementById('weeklyDetailMonthNote');
+  if(head) head.textContent = `${weeklyDetailYear}년 월 추가`;
+  if(note) note.textContent = `${weeklyDetailYear}년에 추가할 월을 선택하세요.`;
+  const grid = document.getElementById('weeklyDetailMonthGrid');
+  const existing = new Set(weeklyMonths(weeklyDetailYear));
+  if(grid){
+    grid.innerHTML = Array.from({length:12},(_,i)=>i+1).map(m=>{
+      const cls = existing.has(m) ? 'disabled' : '';
+      return `<button type="button" class="${cls}" data-month="${m}" ${existing.has(m)?'title="이미 추가된 월"':''}>${m}월</button>`;
+    }).join('');
+    grid.querySelectorAll('button').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const m = Number(btn.dataset.month);
+        if(!m) return;
+        weeklyDetailAddingMonth = m;
+        grid.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+  }
+  document.getElementById('weeklyDetailMonthBack')?.classList.add('open');
+}
+function closeWeeklyDetailMonthAdd(){
+  weeklyDetailAddingMonth = null;
+  document.getElementById('weeklyDetailMonthBack')?.classList.remove('open');
+}
+function saveWeeklyDetailMonthAdd(){
+  if(!weeklyDetailAddingMonth) return;
+  ensureMonthRegistered(weeklyDetailYear, weeklyDetailAddingMonth);
+  weeklyDetailMonth = weeklyDetailAddingMonth;
+  weeklyDetailWeek = 1;
+  saveWeeklyPlanMonths();
+  closeWeeklyDetailMonthAdd();
+  renderWeeklyDetailModal();
+}
+function bindWeeklyDetailUI(){
+  document.getElementById('weeklyDetailOpen')?.addEventListener('click', openWeeklyDetailModal);
+  document.getElementById('weeklyDetailClose')?.addEventListener('click', closeWeeklyDetailModal);
+  document.getElementById('weeklyDetailCancel')?.addEventListener('click', closeWeeklyDetailModal);
+  document.getElementById('weeklyDetailSave')?.addEventListener('click', saveWeeklyDetail);
+  document.getElementById('weeklyDetailAddMonth')?.addEventListener('click', openWeeklyDetailMonthAdd);
+  document.getElementById('weeklyDetailMonthCancel')?.addEventListener('click', closeWeeklyDetailMonthAdd);
+  document.getElementById('weeklyDetailMonthSave')?.addEventListener('click', saveWeeklyDetailMonthAdd);
+  document.getElementById('weeklyDetailPrevYear')?.addEventListener('click', ()=>{
+    weeklyDetailYear = Number(weeklyDetailYear || selectedWeekInfo().year) - 1;
+    weeklyDetailMonth = null;
+    weeklyDetailWeek = 1;
+    renderWeeklyDetailModal();
+  });
+  document.getElementById('weeklyDetailNextYear')?.addEventListener('click', ()=>{
+    weeklyDetailYear = Number(weeklyDetailYear || selectedWeekInfo().year) + 1;
+    weeklyDetailMonth = null;
+    weeklyDetailWeek = 1;
+    renderWeeklyDetailModal();
+  });
+  const back = document.getElementById('weeklyDetailBack');
+  if(back) back.addEventListener('click', e=>{ if(e.target === back) closeWeeklyDetailModal(); });
+  const monthBack = document.getElementById('weeklyDetailMonthBack');
+  if(monthBack) monthBack.addEventListener('click', e=>{ if(e.target === monthBack) closeWeeklyDetailMonthAdd(); });
+}
+
 function eventSubText(e, baseDate){
   const d = ddayLabel(calculateDday(e.date, baseDate || AppState.selectedDate));
   const time = e.startTime && e.endTime ? ` · ${e.startTime}~${e.endTime}` : '';
@@ -1496,6 +1746,7 @@ function renderPlannerPage(date){
 
   /* WEEKLY — 선택일 기준 주간 계획 요약 */
   if(typeof renderWeeklyCurrent === 'function') renderWeeklyCurrent();
+  if(typeof renderWeeklyDetailSummary === 'function') renderWeeklyDetailSummary();
 
   /* D-DAY — 선택일 기준 가장 가까운 주요 일정 (시험·과제·기타 우선, 개인 일정 제외) */
   renderDday(date);
@@ -2974,12 +3225,15 @@ document.addEventListener('click', function(e){
   loadExamRecords();
   loadWeeklyPlans();
   loadWeeklyPlanMonths();
+  loadWeeklyDayNotes();
   bindWeeklyUI();
+  bindWeeklyDetailUI();
   EventsStore.reattachTodoMeta();
   const t = parseDate(todayStr());
   AppState.view = { year: t.getFullYear(), month: t.getMonth() };
   renderCalendar();
   renderWeeklyCurrent();
+  renderWeeklyDetailSummary();
   renderPlannerPage(AppState.selectedDate);
   loadPostits(); renderPostits();      // 포스트잇 (가로 전용)
   renderStats();                       // 공부시간 통계 (가로 전용)
