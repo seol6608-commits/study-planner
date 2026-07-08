@@ -3955,6 +3955,215 @@ body[data-theme="deep"] .wd-day-label{
   }
 }
 
+
+/* ============================================================
+   V2.8.21 Smartphone weekly row + Task restore fix
+   - 아이패드/넓은 화면 영향 없음
+   - 캘린더/MEMO 2열은 유지
+   - 그 아래에만 주간 계획/주간 상세 계획 2열 배치
+   - 플래너 종이 레이아웃은 유지하고 Task 기본 3줄 정도 확보
+   ============================================================ */
+@media (max-width:600px){
+  .sidebar{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:stretch;
+    column-gap:10px;
+    row-gap:6px;
+  }
+  .brand{
+    order:1;
+    flex:0 0 100%;
+  }
+
+  /* 1행: 캘린더 + MEMO 유지 */
+  .calendar{
+    order:2;
+    flex:1 1 calc(50% - 5px);
+    max-width:calc(50% - 5px);
+    min-width:0;
+    margin-top:0;
+  }
+  .cal-memo{
+    order:2;
+    flex:1 1 calc(50% - 5px);
+    max-width:calc(50% - 5px);
+    min-width:0;
+    margin-top:0;
+  }
+
+  /* 2행: 주간 계획 + 주간 상세 계획만 가로 병렬 */
+  .weekly-box,
+  .weekly-detail-box{
+    order:3;
+    flex:1 1 calc(50% - 5px);
+    max-width:calc(50% - 5px);
+    min-width:0;
+    height:76px;
+    margin-top:0;
+    padding:7px 8px;
+    border-radius:11px;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    box-sizing:border-box;
+  }
+
+  .weekly-head,
+  .weekly-detail-head{
+    flex:0 0 20px;
+    min-width:0;
+    margin-bottom:3px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:6px;
+  }
+  .weekly-head span,
+  .weekly-detail-head span{
+    min-width:0;
+    font-size:9.6px;
+    letter-spacing:.10em;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .weekly-head button,
+  .weekly-detail-head button{
+    flex:0 0 auto;
+    width:22px;
+    height:20px;
+    font-size:11px;
+  }
+
+  .weekly-current,
+  .weekly-detail-current{
+    flex:1 1 auto;
+    min-height:0;
+    overflow:hidden;
+    font-size:10.8px;
+    line-height:1.25;
+  }
+  .weekly-week-title,
+  .weekly-detail-current .wdc-title{
+    margin:0 0 2px;
+    font-size:11px;
+    line-height:1.25;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  /* 스마트폰 요약 카드: 높이 고정, 긴 내용 말줄임 */
+  .weekly-current .weekly-line{
+    display:none;
+  }
+  .weekly-current .weekly-line:nth-of-type(2){
+    display:flex;
+    align-items:center;
+    gap:4px;
+    margin:0;
+    min-width:0;
+    line-height:1.25;
+  }
+  .weekly-current .weekly-line:nth-of-type(2) b{
+    flex:0 0 auto;
+    min-width:0;
+    font-size:10.5px;
+  }
+  .weekly-current .weekly-line:nth-of-type(2) span{
+    min-width:0;
+    font-size:10.5px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .weekly-current .weekly-empty{
+    font-size:0;
+    line-height:0;
+    padding:0;
+    margin:0;
+  }
+  .weekly-current .weekly-empty::before{
+    content:"계획 없음";
+    display:block;
+    font-size:10.8px;
+    line-height:1.25;
+    color:#B6C5D0;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  /* 주간 상세 계획의 '요일별 상세 메모 없음' 문구는 표시하지 않음 */
+  .weekly-detail-current .wdc-line{
+    display:none !important;
+  }
+
+  .exam-box{
+    display:none !important;
+  }
+
+  /* 플래너 종이 기존 구조 유지 + Task만 3줄 이상 보이게 확보 */
+  .stage{
+    flex:1 1 auto;
+    min-height:0;
+    padding:7px 12px calc(82px + env(safe-area-inset-bottom, 0px));
+    overflow:hidden;
+  }
+  .paper{
+    width:100%;
+    max-width:none;
+    height:100%;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+  }
+  .sheet{
+    flex:1;
+    min-height:0;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    grid-template-rows:auto auto minmax(112px, 1fr);
+    column-gap:14px;
+    row-gap:0;
+    padding:9px 16px 9px;
+  }
+  .col{
+    display:contents;
+  }
+  .field.date{grid-column:1;grid-row:1;}
+  .field.dday{grid-column:2;grid-row:1;}
+  .field.contents{grid-column:1;grid-row:2;}
+  .field.total{grid-column:2;grid-row:2;}
+  .field.task{
+    grid-column:1 / -1;
+    grid-row:3;
+    display:flex;
+    flex-direction:column;
+    min-height:112px;
+    margin-top:3px;
+    overflow:hidden;
+  }
+  .field.task > h3{
+    flex:0 0 auto;
+    margin-bottom:2px;
+    padding-bottom:4px;
+  }
+  .task-body{
+    flex:1 1 auto;
+    min-height:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+  }
+  .task-line{
+    height:30px;
+    min-height:30px;
+  }
+}
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -4532,7 +4741,7 @@ body[data-theme="deep"] .wd-day-label{
 </div>
 
 
-<script src="app.js?v=2.8.20"></script>
+<script src="app.js?v=2.8.21"></script>
 
 </body>
 </html>

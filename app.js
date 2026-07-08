@@ -943,7 +943,7 @@ function renderWeeklyDetailSummary(){
   const note = weeklyDetailFor(info.year, info.month, info.week);
   const count = weeklyDetailFilledDays(note);
   el.innerHTML = `<div class="wdc-title">${info.month}월 ${info.week}주차 상세</div>`
-    + `<div class="wdc-line">${count ? `${count}개 요일 메모 있음` : '요일별 상세 메모 없음'}</div>`;
+    + (count ? `<div class="wdc-line">${count}개 요일 메모 있음</div>` : '');
 }
 function ensureWeeklyDetailYM(){
   const info = selectedWeekInfo();
