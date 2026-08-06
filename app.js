@@ -2804,9 +2804,9 @@ function todoPlannedTag(e){
 }
 function studyAggregate(range){
   // 기준: 선택일이 속한 주(월~일) 또는 달
-  // V2.8.22부터 Study Time은 타이머 기록이 아니라
-  // 할 일 목록(Task)의 시작~종료 계획 시간을 과목 태그별로 합산한다.
-  // 완료 체크 여부와 무관하게 '계획된 공부시간'을 보여준다.
+  // V2.8.24부터 Study Time은 타이머 기록이 아니라
+  // 완료 체크된 할 일(Task)의 시작~종료 시간을 과목 태그별로 합산한다.
+  // 체크 해제하면 해당 시간도 Study Time에서 빠진다.
   const base = parseDate(AppState.selectedDate);
   let from, to;
   if(range === "month"){
@@ -2829,7 +2829,7 @@ function studyAggregate(range){
   }
   const tagMin = {}; let total = 0;
   EventsStore.getAll().forEach(e=>{
-    if(!e || e.type !== 'todo' || !e.date || e.date < fromS || e.date > toS) return;
+    if(!e || e.type !== 'todo' || !e.done || !e.date || e.date < fromS || e.date > toS) return;
     const tg = todoPlannedTag(e);
     if(isNonStudyBlock({ title:e.title, tag:tg })) return;
     const d = todoPlannedMinutes(e);
@@ -2938,7 +2938,7 @@ function renderStats(){
   const fmtDur = (m)=>{ const h=Math.floor(m/60), mm=m%60; return `${h?h+"h":""}${mm?mm+"m":(h?"":"0m")}`; };
   let body;
   if(total <= 0){
-    body = `<div class="st-empty">이 기간에 시간 입력된<br>할 일 계획이 없어요.<br><br>Study Time은 Task의<br>시작~종료 시간을 합산합니다.</div>`;
+    body = `<div class="st-empty">이 기간에 체크된<br>시간 입력 할 일이 없어요.<br><br>할 일을 체크하면<br>Study Time에 합산됩니다.</div>`;
   } else {
     const max = Math.max.apply(null, Object.values(tagMin));
     const rows = Object.keys(tagMin).sort((a,b)=>tagMin[b]-tagMin[a]).map(tg=>{
@@ -3071,18 +3071,14 @@ function selectedTimerSubjectValue(){
   return typed || selectedTimerSubject || '수학';
 }
 function syncTimerGoalInputFromRadio(){
-  const checked = document.querySelector('input[name="timerGoal"]:checked');
+  // V2.8.24: 목표 시간 버튼 제거. 직접 입력칸만 사용한다.
   const input = document.getElementById('timerGoalCustom');
-  if(!checked || !input) return;
-  const v = Number(checked.value || 0);
-  input.value = v > 0 ? String(v) : '';
+  if(input && !input.value) input.value = '';
 }
 function selectedGoalMin(){
   const raw = String(document.getElementById('timerGoalCustom')?.value || '').replace(/[^0-9.]/g, '');
   const custom = Math.round(Number(raw));
-  if(Number.isFinite(custom) && custom > 0) return custom;
-  const checked = document.querySelector('input[name="timerGoal"]:checked');
-  return checked ? Number(checked.value || 0) : 90;
+  return (Number.isFinite(custom) && custom > 0) ? custom : 0;
 }
 function startFocusTimer(){
   const subject = selectedTimerSubjectValue();
@@ -3237,16 +3233,10 @@ function bindFocusTimerUI(){
       syncTimerSubjectChips(timerSubjectCustom.value.trim());
     });
   }
-  document.querySelectorAll('input[name="timerGoal"]').forEach(r=>{
-    r.addEventListener('change', syncTimerGoalInputFromRadio);
-  });
   const timerGoalCustom = document.getElementById('timerGoalCustom');
   if(timerGoalCustom){
     timerGoalCustom.addEventListener('input', ()=>{
-      const n = Math.round(Number(String(timerGoalCustom.value || '').replace(/[^0-9.]/g, '')));
-      document.querySelectorAll('input[name="timerGoal"]').forEach(r=>{
-        r.checked = Number(r.value) === n && n > 0;
-      });
+      timerGoalCustom.value = String(timerGoalCustom.value || '').replace(/[^0-9]/g, '');
     });
   }
   document.getElementById('focusPause')?.addEventListener('click', pauseOrResumeFocus);
