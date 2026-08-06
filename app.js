@@ -2788,10 +2788,25 @@ window.addEventListener('touchend', endPDrag);
  *  공부시간 통계 (가로 전용 · 할일 시작~종료 시간을 태그별 합산 · 주간/월간)
  * ========================================================================== */
 let statsRange = 'week';   // 'week' | 'month'
+function todoPlannedMinutes(e){
+  if(!e || e.type !== 'todo') return 0;
+  const m = todoMeta[e.id] || {};
+  const start = e.startTime || m.start || '';
+  const end = e.endTime || m.end || '';
+  if(!/^\d{2}:\d{2}$/.test(start) || !/^\d{2}:\d{2}$/.test(end)) return 0;
+  let d = toMin(end) - toMin(start);
+  if(d < 0) d += 24 * 60;
+  return d > 0 ? d : 0;
+}
+function todoPlannedTag(e){
+  const m = todoMeta[e.id] || {};
+  return e.tag || m.tag || e.title || '기타';
+}
 function studyAggregate(range){
   // 기준: 선택일이 속한 주(월~일) 또는 달
-  // V2.8.6부터 Study Time은 실제 타이머 기록만 합산한다.
-  // Task 체크는 완료/진행률에만 사용하고 공부시간 통계에는 더하지 않는다.
+  // V2.8.22부터 Study Time은 타이머 기록이 아니라
+  // 할 일 목록(Task)의 시작~종료 계획 시간을 과목 태그별로 합산한다.
+  // 완료 체크 여부와 무관하게 '계획된 공부시간'을 보여준다.
   const base = parseDate(AppState.selectedDate);
   let from, to;
   if(range === "month"){
@@ -2813,11 +2828,14 @@ function studyAggregate(range){
     label = (thu.getMonth()+1) + "월 " + wk + "주차";
   }
   const tagMin = {}; let total = 0;
-  timerLogs.forEach(log=>{
-    if(log.date >= fromS && log.date <= toS){
-      const tg = log.subject || "기타";
-      const d = Math.round((log.durationSec || 0) / 60);
-      if(d > 0){ tagMin[tg] = (tagMin[tg]||0) + d; total += d; }
+  EventsStore.getAll().forEach(e=>{
+    if(!e || e.type !== 'todo' || !e.date || e.date < fromS || e.date > toS) return;
+    const tg = todoPlannedTag(e);
+    if(isNonStudyBlock({ title:e.title, tag:tg })) return;
+    const d = todoPlannedMinutes(e);
+    if(d > 0){
+      tagMin[tg] = (tagMin[tg] || 0) + d;
+      total += d;
     }
   });
   return { tagMin, total, fromS, toS, label };
@@ -2920,7 +2938,7 @@ function renderStats(){
   const fmtDur = (m)=>{ const h=Math.floor(m/60), mm=m%60; return `${h?h+"h":""}${mm?mm+"m":(h?"":"0m")}`; };
   let body;
   if(total <= 0){
-    body = `<div class="st-empty">이 기간에 기록된<br>실제 공부시간이 없어요.<br><br>Task 체크 시간은 제외되고<br>타이머 기록만 합산됩니다.</div>`;
+    body = `<div class="st-empty">이 기간에 시간 입력된<br>할 일 계획이 없어요.<br><br>Study Time은 Task의<br>시작~종료 시간을 합산합니다.</div>`;
   } else {
     const max = Math.max.apply(null, Object.values(tagMin));
     const rows = Object.keys(tagMin).sort((a,b)=>tagMin[b]-tagMin[a]).map(tg=>{
