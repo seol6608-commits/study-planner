@@ -4164,6 +4164,67 @@ body[data-theme="deep"] .wd-day-label{
   }
 }
 
+
+/* ============================================================
+   V2.8.23 Timer free setting
+   - 과목/목표 시간을 버튼 + 직접 입력 혼합형으로 변경
+   - 긴 과목명/숫자 입력에도 모달 폭 유지
+   ============================================================ */
+.timer-free-input{
+  width:100%;
+  margin-top:8px;
+  box-sizing:border-box;
+  min-width:0;
+}
+.timer-free-minute-row{
+  margin-top:8px;
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) auto;
+  align-items:center;
+  gap:8px;
+}
+.timer-free-minute-row input{
+  width:100%;
+  min-width:0;
+  box-sizing:border-box;
+  font-variant-numeric:tabular-nums;
+}
+.timer-free-minute-row span{
+  color:var(--text-sub);
+  font-size:13px;
+  white-space:nowrap;
+}
+.timer-subject-chip{
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.timer-goal-row label{
+  min-width:0;
+  white-space:nowrap;
+}
+@media (max-width:600px){
+  .timer-subject-grid{
+    grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:7px;
+  }
+  .timer-subject-chip{
+    padding:9px 4px;
+    font-size:12px;
+  }
+  .timer-goal-row{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:7px;
+  }
+  .timer-goal-row label{
+    justify-content:center;
+    padding:8px 4px;
+    font-size:11.5px;
+  }
+}
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -4650,6 +4711,7 @@ body[data-theme="deep"] .wd-day-label{
           <button type="button" class="timer-subject-chip" data-subject="현강">현강</button>
           <button type="button" class="timer-subject-chip" data-subject="기타">기타</button>
         </div>
+        <input type="text" id="timerSubjectCustom" class="timer-free-input" placeholder="직접 입력 예: 다변수, BGM, 고급화학" />
       </div>
       <div class="m-field">
         <label>목표 시간</label>
@@ -4658,10 +4720,14 @@ body[data-theme="deep"] .wd-day-label{
           <label><input type="radio" name="timerGoal" value="100"> 100분</label>
           <label><input type="radio" name="timerGoal" value="0"> 자유</label>
         </div>
+        <div class="timer-free-minute-row">
+          <input type="number" id="timerGoalCustom" min="0" step="1" inputmode="numeric" placeholder="직접 입력" />
+          <span>분</span>
+        </div>
       </div>
       <div class="m-field">
-        <label>메모 선택</label>
-        <input type="text" id="timerMemo" placeholder="예: 오늘 1회차" />
+        <label>메모</label>
+        <input type="text" id="timerMemo" placeholder="예: 다변수 4단원 복습" />
       </div>
     </div>
     <div class="m-actions">
@@ -4741,7 +4807,7 @@ body[data-theme="deep"] .wd-day-label{
 </div>
 
 
-<script src="app.js?v=2.8.22"></script>
+<script src="app.js?v=2.8.23"></script>
 
 </body>
 </html>

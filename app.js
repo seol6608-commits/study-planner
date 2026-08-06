@@ -3054,18 +3054,44 @@ function openTimerModal(){
 function closeTimerModal(){
   if(timerBack) timerBack.classList.remove('open');
 }
-function setTimerSubject(subject){
-  selectedTimerSubject = subject || '수학';
+function syncTimerSubjectChips(subject){
+  const v = (subject || '').trim();
   document.querySelectorAll('.timer-subject-chip').forEach(btn=>{
-    btn.classList.toggle('active', btn.dataset.subject === selectedTimerSubject);
+    btn.classList.toggle('active', btn.dataset.subject === v);
   });
 }
+function setTimerSubject(subject, fillInput){
+  selectedTimerSubject = (subject || '수학').trim() || '수학';
+  syncTimerSubjectChips(selectedTimerSubject);
+  const input = document.getElementById('timerSubjectCustom');
+  if(input && fillInput !== false) input.value = selectedTimerSubject;
+}
+function selectedTimerSubjectValue(){
+  const typed = (document.getElementById('timerSubjectCustom')?.value || '').trim();
+  return typed || selectedTimerSubject || '수학';
+}
+function syncTimerGoalInputFromRadio(){
+  const checked = document.querySelector('input[name="timerGoal"]:checked');
+  const input = document.getElementById('timerGoalCustom');
+  if(!checked || !input) return;
+  const v = Number(checked.value || 0);
+  input.value = v > 0 ? String(v) : '';
+}
 function selectedGoalMin(){
+  const raw = String(document.getElementById('timerGoalCustom')?.value || '').replace(/[^0-9.]/g, '');
+  const custom = Math.round(Number(raw));
+  if(Number.isFinite(custom) && custom > 0) return custom;
   const checked = document.querySelector('input[name="timerGoal"]:checked');
   return checked ? Number(checked.value || 0) : 90;
 }
 function startFocusTimer(){
-  const subject = selectedTimerSubject || '수학';
+  const subject = selectedTimerSubjectValue();
+  if(!subject){
+    document.getElementById('timerSubjectCustom')?.focus();
+    return;
+  }
+  selectedTimerSubject = subject;
+  syncTimerSubjectChips(subject);
   const memo = (document.getElementById('timerMemo')?.value || '').trim();
   const now = Date.now();
   activeFocusTimer = {
@@ -3202,8 +3228,27 @@ function bindFocusTimerUI(){
   document.getElementById('timerCancel')?.addEventListener('click', closeTimerModal);
   document.getElementById('timerStart')?.addEventListener('click', startFocusTimer);
   document.querySelectorAll('.timer-subject-chip').forEach(btn=>{
-    btn.addEventListener('click', ()=>setTimerSubject(btn.dataset.subject));
+    btn.addEventListener('click', ()=>setTimerSubject(btn.dataset.subject, true));
   });
+  const timerSubjectCustom = document.getElementById('timerSubjectCustom');
+  if(timerSubjectCustom){
+    timerSubjectCustom.addEventListener('input', ()=>{
+      selectedTimerSubject = timerSubjectCustom.value.trim() || '수학';
+      syncTimerSubjectChips(timerSubjectCustom.value.trim());
+    });
+  }
+  document.querySelectorAll('input[name="timerGoal"]').forEach(r=>{
+    r.addEventListener('change', syncTimerGoalInputFromRadio);
+  });
+  const timerGoalCustom = document.getElementById('timerGoalCustom');
+  if(timerGoalCustom){
+    timerGoalCustom.addEventListener('input', ()=>{
+      const n = Math.round(Number(String(timerGoalCustom.value || '').replace(/[^0-9.]/g, '')));
+      document.querySelectorAll('input[name="timerGoal"]').forEach(r=>{
+        r.checked = Number(r.value) === n && n > 0;
+      });
+    });
+  }
   document.getElementById('focusPause')?.addEventListener('click', pauseOrResumeFocus);
   document.getElementById('focusFinish')?.addEventListener('click', finishFocusTimer);
   document.getElementById('focusBackPlanner')?.addEventListener('click', closeFocusMode);
@@ -3211,7 +3256,8 @@ function bindFocusTimerUI(){
   document.getElementById('timerLogEditSave')?.addEventListener('click', saveTimerLogEdit);
   const tlEditBack = document.getElementById('timerLogEditBack');
   if(tlEditBack) tlEditBack.addEventListener('click', e=>{ if(e.target === tlEditBack) closeTimerLogEdit(); });
-  setTimerSubject(selectedTimerSubject);
+  setTimerSubject(selectedTimerSubject, true);
+  syncTimerGoalInputFromRadio();
 }
 
 
