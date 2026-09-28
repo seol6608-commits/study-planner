@@ -4311,6 +4311,165 @@ body[data-theme="deep"] .tt-nav-btn:hover{
   }
 }
 
+
+/* ============================================================
+   V3.00 Weekly continuous Time Table
+   - 월~일 7일 고정 세로 스크롤
+   - 하루 기준: 06:00~다음날 05:59
+   - 시험 기록 숨김 처리 유지
+   ============================================================ */
+.exam-box,
+#examBack{
+  display:none !important;
+}
+.tt{
+  margin-top:2px;
+  max-height:452px;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  border-top:1px solid var(--line-soft);
+  border-bottom:1px solid var(--line-soft);
+  border-radius:6px;
+  background:rgba(255,255,255,.38);
+  scroll-behavior:smooth;
+}
+.tt::-webkit-scrollbar{width:5px;}
+.tt::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px;}
+.tt-week{
+  position:relative;
+}
+.tt-day{
+  position:relative;
+  border-bottom:1px solid var(--line);
+  background:rgba(255,255,255,.16);
+}
+.tt-day-head{
+  position:sticky;
+  top:0;
+  z-index:7;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  min-height:26px;
+  padding:5px 8px 5px 26px;
+  border-bottom:1px solid var(--line);
+  background:rgba(255,255,255,.94);
+  backdrop-filter:blur(8px);
+  color:var(--text);
+  font-size:11.5px;
+  letter-spacing:.02em;
+}
+.tt-day.active .tt-day-head{
+  color:var(--blue-deep);
+  background:linear-gradient(90deg, var(--blue-bg), rgba(255,255,255,.94));
+}
+.tt-day-date{
+  font-weight:600;
+  white-space:nowrap;
+}
+.tt-day-range{
+  color:var(--text-sub);
+  font-family:var(--font-label);
+  font-size:10px;
+  white-space:nowrap;
+}
+.tt-day-grid{
+  position:relative;
+  border-top:0;
+}
+.tt-day .tt-blocks{
+  position:absolute;
+  top:0;
+  left:26px;
+  right:0;
+  bottom:0;
+  pointer-events:none;
+}
+.tt-empty-week{
+  padding:30px 10px;
+  text-align:center;
+  color:var(--text-sub);
+  font-size:12px;
+}
+.tt-head{
+  display:flex !important;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  min-width:0;
+}
+.tt-head > span{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.tt-nav-btn{
+  flex:0 0 auto;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.72);
+  color:var(--text-sub);
+  border-radius:999px;
+  padding:4px 8px;
+  font-family:var(--font-ko);
+  font-size:11px;
+  line-height:1;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.tt-nav-btn:hover{
+  color:var(--blue-deep);
+  border-color:var(--blue-main);
+  background:var(--blue-bg);
+}
+body[data-theme="deep"] .tt{
+  background:rgba(255,255,255,.035);
+  border-color:var(--line);
+}
+body[data-theme="deep"] .tt-day{
+  background:rgba(255,255,255,.025);
+  border-color:var(--line);
+}
+body[data-theme="deep"] .tt-day-head{
+  background:rgba(31,48,61,.94);
+  color:var(--text);
+  border-color:var(--line);
+}
+body[data-theme="deep"] .tt-day.active .tt-day-head{
+  background:linear-gradient(90deg, rgba(126,165,196,.18), rgba(31,48,61,.94));
+  color:var(--blue-deep);
+}
+body[data-theme="deep"] .tt-nav-btn{
+  background:rgba(255,255,255,.075);
+  color:var(--text-sub);
+  border-color:var(--line);
+}
+body[data-theme="deep"] .tt-nav-btn:hover{
+  background:rgba(126,165,196,.16);
+  color:var(--text);
+  border-color:rgba(126,165,196,.55);
+}
+@media (max-width:600px){
+  .tt{
+    max-height:320px;
+  }
+  .tt-nav-btn{
+    padding:3px 6px;
+    font-size:9.5px;
+  }
+  .tt-head{
+    gap:5px;
+  }
+  .tt-day-head{
+    padding-left:24px;
+    font-size:10.5px;
+  }
+  .tt-day-range{
+    display:none;
+  }
+}
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -4428,9 +4587,9 @@ body[data-theme="deep"] .tt-nav-btn:hover{
 
           <section class="field timetable">
             <h3 class="tt-head">
-              <button type="button" class="tt-nav-btn" id="ttPrevDay" aria-label="전날 보기">‹ 전날</button>
-              <span>Time Table</span>
-              <button type="button" class="tt-nav-btn" id="ttNextDay" aria-label="다음날 보기">다음날 ›</button>
+              <button type="button" class="tt-nav-btn" id="ttPrevDay" aria-label="이전 주 보기">‹ 이전 주</button>
+              <span id="ttWeekLabel">Time Table</span>
+              <button type="button" class="tt-nav-btn" id="ttNextDay" aria-label="다음 주 보기">다음 주 ›</button>
             </h3>
             <div class="tt" id="fTime"></div>
           </section>
@@ -4893,7 +5052,7 @@ body[data-theme="deep"] .tt-nav-btn:hover{
 </div>
 
 
-<script src="app.js?v=3.0.1"></script>
+<script src="app.js?v=3.00"></script>
 
 </body>
 </html>

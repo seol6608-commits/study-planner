@@ -1686,8 +1686,10 @@ function renderCalendar(){
   }
 }
 
-function renderPlannerPage(date){
-  const events = getEventsByDate(date);
+function renderPlannerPage(date, opts){
+  opts = opts || {};
+  const events = getEventsByDate(date);              // 일반 일정/Task/Memo는 달력 날짜 기준 00:00~24:00
+  const studyTodos = studyTodosByStudyDate(date);    // 공부시간/타임라인은 06:00~다음날 05:59 기준
   const d = parseDate(date);
 
   /* DATE */
@@ -1710,29 +1712,27 @@ function renderPlannerPage(date){
     contentsEl.innerHTML = `<span style="color:#B6C5D0">등록된 일정 없음</span>`;
   }
 
-  /* TOTAL — 완료 현황 + 할일 누적시간(태그별/전체) */
+  /* TOTAL — 일정 완료 현황 + 공부일 기준 할일 진행 시간 */
   const doneCount = events.filter(e => e.done).length;
-  // 일정(시간블록) 총합은 참고용으로 유지
-  let blockMin = 0;
-  events.forEach(e => { if(e.type!=='todo' && e.startTime && e.endTime) blockMin += durationMinutes(e.startTime, e.endTime); });
-  // 할일 누적시간: 태그별 합산 + 완료 시간
   const tagMin = {};
   let todoMin = 0, doneMin = 0;
-  events.forEach(e => {
-    if(e.type==='todo' && e.startTime && e.endTime){
-      const tg = e.tag || '기타';
-      if(isNonStudyBlock(e)) return;
-      const d = durationMinutes(e.startTime, e.endTime);
-      if(d > 0){ tagMin[tg] = (tagMin[tg]||0) + d; todoMin += d; if(e.done) doneMin += d; }
+  studyTodos.forEach(e => {
+    const tg = e.tag || '기타';
+    if(isNonStudyBlock(e)) return;
+    const dMin = durationMinutes(e.startTime, e.endTime);
+    if(dMin > 0){
+      tagMin[tg] = (tagMin[tg]||0) + dMin;
+      todoMin += dMin;
+      if(e.done) doneMin += dMin;
     }
   });
   const fmtDur = (mins)=>{ const h=Math.floor(mins/60), m=mins%60; return `${h?h+'h':''}${m?m+'m':(h?'':'0m')}`; };
   const totalEl = document.getElementById('fTotal');
-  if(events.length){
-    let html = `완료 <b>${doneCount} / ${events.length}</b>`;
+  if(events.length || todoMin > 0){
+    let html = events.length ? `완료 <b>${doneCount} / ${events.length}</b>` : '';
     if(todoMin > 0){
       const pct = Math.round((doneMin/todoMin)*100);
-      html += `<div class="total-study">할일 진행 <b>${fmtDur(doneMin)}</b> / ${fmtDur(todoMin)} <span class="study-pct">(${pct}%)</span></div>`;
+      html += `<div class="total-study">공부일 진행 <b>${fmtDur(doneMin)}</b> / ${fmtDur(todoMin)} <span class="study-pct">(${pct}%)</span></div>`;
       html += `<div class="study-bar"><div class="study-bar-fill" style="width:${pct}%"></div></div>`;
       const parts = Object.keys(tagMin).map(tg =>
         `<span class="ts-tag"><i style="background:${tagColor(tg)}"></i>${tg} ${fmtDur(tagMin[tg])}</span>`
@@ -1748,22 +1748,24 @@ function renderPlannerPage(date){
   if(typeof renderWeeklyCurrent === 'function') renderWeeklyCurrent();
   if(typeof renderWeeklyDetailSummary === 'function') renderWeeklyDetailSummary();
 
-  /* D-DAY — 선택일 기준 가장 가까운 주요 일정 (시험·과제·기타 우선, 개인 일정 제외) */
+  /* D-DAY — 일반 날짜 기준 */
   renderDday(date);
 
-  /* TASK — 그날 일정 목록을 줄 위에 표시 */
+  /* TASK — 일반 날짜 기준 00:00~24:00 */
   renderTask(events);
 
-  /* MEMO — 저장소에서 불러와 표시 */
+  /* MEMO — 일반 날짜 기준 */
   const note = Storage.getDayNote(date);
   document.getElementById('fMemo').textContent = note;
   document.getElementById('fMemoMobile').textContent = note;
 
-  /* TIME TABLE */
-  renderTimeTable(events);
+  /* TIME TABLE — 주간 연속 스크롤 */
+  if(!opts.skipTimeTable) renderTimeTable(date, { scrollToDate: opts.scrollToDate !== false });
 
-  /* 공부시간 통계 (가로 전용) 갱신 */
+  /* 공부시간 통계 */
   if(typeof renderStats === 'function') renderStats();
+
+  if(typeof setActiveTimeTableDay === 'function') setActiveTimeTableDay(date);
 }
 
 function renderDday(date){
@@ -1932,6 +1934,9 @@ function renderTask(events){
 }
 
 
+let ttProgrammaticScroll = false;
+let ttScrollRaf = null;
+
 function moveSelectedDate(days){
   const next = addDays(AppState.selectedDate, days);
   AppState.selectedDate = next;
@@ -1940,65 +1945,115 @@ function moveSelectedDate(days){
   renderCalendar();
   renderPlannerPage(next);
 }
+function moveSelectedWeek(delta){
+  moveSelectedDate(delta * 7);
+}
 function bindTimeTableNavigation(){
-  document.getElementById('ttPrevDay')?.addEventListener('click', ()=>moveSelectedDate(-1));
-  document.getElementById('ttNextDay')?.addEventListener('click', ()=>moveSelectedDate(1));
+  document.getElementById('ttPrevDay')?.addEventListener('click', ()=>moveSelectedWeek(-1));
+  document.getElementById('ttNextDay')?.addEventListener('click', ()=>moveSelectedWeek(1));
   const tt = document.getElementById('fTime');
   if(!tt) return;
-  let sx = 0, sy = 0, tracking = false;
-  tt.addEventListener('touchstart', e=>{
-    const t = e.touches && e.touches[0];
-    if(!t) return;
-    sx = t.clientX; sy = t.clientY; tracking = true;
-  }, {passive:true});
-  tt.addEventListener('touchend', e=>{
-    if(!tracking) return;
-    tracking = false;
-    const t = e.changedTouches && e.changedTouches[0];
-    if(!t) return;
-    const dx = t.clientX - sx;
-    const dy = t.clientY - sy;
-    if(Math.abs(dx) > 54 && Math.abs(dx) > Math.abs(dy) * 1.35){
-      moveSelectedDate(dx < 0 ? 1 : -1);
-    }
+  tt.addEventListener('scroll', ()=>{
+    if(ttProgrammaticScroll) return;
+    if(ttScrollRaf) return;
+    ttScrollRaf = requestAnimationFrame(()=>{
+      ttScrollRaf = null;
+      syncSelectedDateFromTimeTableScroll();
+    });
   }, {passive:true});
 }
-
-function renderTimeTable(events){
-  const wrap = document.getElementById('fTime');
-  // 6시 ~ 다음날 3시 (총 22행). 라벨: 6..12, 1..12, 1..3
-  const hours = [];
-  for(let h=6; h<=24+3; h++) hours.push(((h-1)%12)+1);
-
+function setActiveTimeTableDay(date){
+  const tt = document.getElementById('fTime');
+  if(!tt) return;
+  tt.querySelectorAll('.tt-day').forEach(day=>{
+    day.classList.toggle('active', day.dataset.date === date);
+  });
+}
+function syncSelectedDateFromTimeTableScroll(){
+  const tt = document.getElementById('fTime');
+  if(!tt) return;
+  const probe = tt.scrollTop + 34;
+  let current = null;
+  tt.querySelectorAll('.tt-day').forEach(day=>{
+    if(day.offsetTop <= probe) current = day.dataset.date;
+  });
+  if(current && current !== AppState.selectedDate){
+    AppState.selectedDate = current;
+    const d = parseDate(current);
+    AppState.view = { year:d.getFullYear(), month:d.getMonth() };
+    renderCalendar();
+    renderPlannerPage(current, { skipTimeTable:true });
+  } else if(current){
+    setActiveTimeTableDay(current);
+  }
+}
+function scrollTimeTableToDate(date){
+  const tt = document.getElementById('fTime');
+  if(!tt) return;
+  const target = tt.querySelector(`.tt-day[data-date="${date}"]`);
+  if(!target) return;
+  ttProgrammaticScroll = true;
+  tt.scrollTop = Math.max(0, target.offsetTop);
+  setActiveTimeTableDay(date);
+  setTimeout(()=>{ ttProgrammaticScroll = false; }, 180);
+}
+function timeLabelFromHour(h){
+  return String(((h % 24) + 24) % 24).padStart(2, '0');
+}
+function renderTimeRows(){
   let rows = '';
-  hours.forEach(label => {
-    rows += `<div class="tt-row"><span class="tt-h">${label}</span><div class="tt-cells"></div></div>`;
-  });
+  for(let i=0; i<24; i++){
+    const h = 6 + i;
+    rows += `<div class="tt-row"><span class="tt-h">${timeLabelFromHour(h)}</span><div class="tt-cells"></div></div>`;
+  }
+  return rows;
+}
+function renderTimeTableDay(date, rowsHtml){
+  const d = parseDate(date);
+  const next = addDays(date, 1);
+  const blocks = studyTodosByStudyDate(date)
+    .filter(e => e.startTime && e.endTime)
+    .map(e => {
+      const s = studyOffsetMin(e);
+      if(s == null) return '';
+      const duration = durationMinutes(e.startTime, e.endTime);
+      if(duration < 30) return '';
+      const visibleDuration = Math.min(duration, STUDY_DAY_SPAN_MIN - s);
+      if(visibleDuration <= 0) return '';
+      const top = (s / STUDY_DAY_SPAN_MIN) * 100;
+      const hgt = (visibleDuration / STUDY_DAY_SPAN_MIN) * 100;
+      const bg = `background:${tagColor(e.tag||'기타')};`;
+      const label = displayTitle(e);
+      return `<div class="tt-block todo${e.done?' done':''}" style="top:${top}%;height:${hgt}%;${bg}">`
+        + `<div class="b-title">${escapeHtml(label)}</div>`
+        + `<div class="b-time">${escapeHtml(e.startTime)}–${escapeHtml(e.endTime)}</div>`
+        + `</div>`;
+    }).join('');
 
-  // 이벤트 블록 (10분 단위 정밀 배치, 06:00 기준)
-  const SPAN = 22 * 60;                       // 06:00 → 04:00 = 1320분
-  let blocks = '';
-  events.filter(e => e.startTime && e.endTime).forEach(e => {
-    if(isGoogleCalendarEvent(e)) return; // Google Calendar 일정은 D-Day/일정에는 유지, Time Table에서는 제외
-    const s = minutesSince6(e.startTime);
-    if(s == null) return;
-    const duration = durationMinutes(e.startTime, e.endTime);
-    if(duration < 30) return;          // 30분 미만 블록은 Task에만 표시해 잘림 방지
-    const visibleDuration = Math.min(duration, SPAN - s);
-    if(visibleDuration <= 0) return;
-    const top = (s/SPAN)*100;
-    const hgt = (visibleDuration/SPAN)*100;
-    const isTodo = e.type === 'todo';
-    const bg = isTodo ? `background:${tagColor(e.tag||'기타')};` : '';
-    const cls = isTodo ? 'todo' : e.type;
-    const label = displayTitle(e); // V2.1: Time Table은 제목만 표시해 '수학 · 수학' 중복 방지
-    blocks += `<div class="tt-block ${cls}${e.done?' done':''}" style="top:${top}%;height:${hgt}%;${bg}">
-        <div class="b-title">${label}</div>
-        <div class="b-time">${e.startTime}–${e.endTime}</div>
-      </div>`;
-  });
-
-  wrap.innerHTML = `<div class="tt-grid">${rows}<div class="tt-blocks">${blocks}</div></div>`;
+  return `<div class="tt-day" data-date="${date}">`
+    + `<div class="tt-day-head">`
+    + `<span class="tt-day-date">${date.slice(5).replace('-', '/')} ${WK[d.getDay()]}</span>`
+    + `<span class="tt-day-range">06:00~${next.slice(5).replace('-', '/')} 05:59</span>`
+    + `</div>`
+    + `<div class="tt-day-grid">${rowsHtml}<div class="tt-blocks">${blocks}</div></div>`
+    + `</div>`;
+}
+function renderTimeTable(date, opts){
+  opts = opts || {};
+  const wrap = document.getElementById('fTime');
+  if(!wrap) return;
+  const days = weekDatesFor(date);
+  const rowsHtml = renderTimeRows();
+  const start = days[0], end = days[6];
+  const label = document.getElementById('ttWeekLabel');
+  if(label) label.textContent = `${start.slice(5).replace('-', '/')}~${end.slice(5).replace('-', '/')}`;
+  wrap.innerHTML = `<div class="tt-week" data-week-start="${start}">`
+    + days.map(day => renderTimeTableDay(day, rowsHtml)).join('')
+    + `</div>`;
+  setActiveTimeTableDay(date);
+  if(opts.scrollToDate !== false){
+    requestAnimationFrame(()=>scrollTimeTableToDate(date));
+  }
 }
 
 /* ---------- 보조 함수 ---------- */
@@ -2011,6 +2066,38 @@ function durationMinutes(start, end){
 }
 function isGoogleCalendarEvent(e){
   return e && e.source === 'google-calendar';
+}
+const STUDY_DAY_START_MIN = 6 * 60;
+const STUDY_DAY_SPAN_MIN = 24 * 60;
+function weekStartDate(dateStr){
+  const d = parseDate(dateStr);
+  const dow = (d.getDay()+6)%7; // 월=0
+  d.setDate(d.getDate()-dow);
+  return fmt(d);
+}
+function weekDatesFor(dateStr){
+  const start = weekStartDate(dateStr);
+  return Array.from({length:7}, (_,i)=>addDays(start, i));
+}
+function studyDateForTodo(e){
+  if(!e || e.type !== 'todo' || !e.date) return e && e.date;
+  const start = (e.startTime || (todoMeta[e.id] && todoMeta[e.id].start) || '');
+  if(/^\d{2}:\d{2}$/.test(start) && toMin(start) < STUDY_DAY_START_MIN){
+    return addDays(e.date, -1);
+  }
+  return e.date;
+}
+function studyOffsetMin(e){
+  const start = e && e.startTime;
+  if(!/^\d{2}:\d{2}$/.test(start || '')) return null;
+  let v = toMin(start) - STUDY_DAY_START_MIN;
+  if(v < 0) v += 24 * 60;
+  return v;
+}
+function studyTodosByStudyDate(dateStr){
+  return EventsStore.getAll().filter(e =>
+    e && e.type === 'todo' && e.startTime && e.endTime && studyDateForTodo(e) === dateStr
+  );
 }
 function minutesSince6(t){
   const v = toMin(t);
@@ -2846,9 +2933,8 @@ function todoPlannedTag(e){
 }
 function studyAggregate(range){
   // 기준: 선택일이 속한 주(월~일) 또는 달
-  // V2.8.24부터 Study Time은 타이머 기록이 아니라
-  // 완료 체크된 할 일(Task)의 시작~종료 시간을 과목 태그별로 합산한다.
-  // 체크 해제하면 해당 시간도 Study Time에서 빠진다.
+  // V3.00부터 Study Time은 완료 체크된 할 일을 공부일 기준으로 합산한다.
+  // 공부일 기준: 06:00~다음날 05:59, 00:00~05:59 시작은 전날로 귀속.
   const base = parseDate(AppState.selectedDate);
   let from, to;
   if(range === "month"){
@@ -2871,7 +2957,9 @@ function studyAggregate(range){
   }
   const tagMin = {}; let total = 0;
   EventsStore.getAll().forEach(e=>{
-    if(!e || e.type !== 'todo' || !e.done || !e.date || e.date < fromS || e.date > toS) return;
+    if(!e || e.type !== 'todo' || !e.done || !e.date) return;
+    const studyDate = studyDateForTodo(e);
+    if(!studyDate || studyDate < fromS || studyDate > toS) return;
     const tg = todoPlannedTag(e);
     if(isNonStudyBlock({ title:e.title, tag:tg })) return;
     const d = todoPlannedMinutes(e);
