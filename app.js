@@ -1979,7 +1979,7 @@ function renderTimeTable(events){
   const SPAN = 22 * 60;                       // 06:00 → 04:00 = 1320분
   let blocks = '';
   events.filter(e => e.startTime && e.endTime).forEach(e => {
-    if(isGoogleCalendarEvent(e)) return; // V3.0: Google Calendar 일정은 D-Day/일정에는 유지하되 Time Table에서는 제외
+    if(isGoogleCalendarEvent(e)) return; // Google Calendar 일정은 D-Day/일정에는 유지, Time Table에서는 제외
     const s = minutesSince6(e.startTime);
     if(s == null) return;
     const duration = durationMinutes(e.startTime, e.endTime);
@@ -2006,7 +2006,7 @@ function toMin(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
 function durationMinutes(start, end){
   if(!/^\d{2}:\d{2}$/.test(start || '') || !/^\d{2}:\d{2}$/.test(end || '')) return 0;
   let d = toMin(end) - toMin(start);
-  if(d <= 0) d += 24 * 60; // 종료 시각이 시작 시각보다 빠르거나 같으면 다음날 종료로 간주
+  if(d <= 0) d += 24 * 60; // 종료가 시작보다 빠르거나 같으면 다음날 종료로 간주
   return d > 0 ? d : 0;
 }
 function isGoogleCalendarEvent(e){
