@@ -1714,7 +1714,7 @@ function renderPlannerPage(date){
   const doneCount = events.filter(e => e.done).length;
   // 일정(시간블록) 총합은 참고용으로 유지
   let blockMin = 0;
-  events.forEach(e => { if(e.type!=='todo' && e.startTime && e.endTime) blockMin += toMin(e.endTime) - toMin(e.startTime); });
+  events.forEach(e => { if(e.type!=='todo' && e.startTime && e.endTime) blockMin += durationMinutes(e.startTime, e.endTime); });
   // 할일 누적시간: 태그별 합산 + 완료 시간
   const tagMin = {};
   let todoMin = 0, doneMin = 0;
@@ -1722,7 +1722,7 @@ function renderPlannerPage(date){
     if(e.type==='todo' && e.startTime && e.endTime){
       const tg = e.tag || '기타';
       if(isNonStudyBlock(e)) return;
-      const d = toMin(e.endTime) - toMin(e.startTime);
+      const d = durationMinutes(e.startTime, e.endTime);
       if(d > 0){ tagMin[tg] = (tagMin[tg]||0) + d; todoMin += d; if(e.done) doneMin += d; }
     }
   });
@@ -1931,6 +1931,39 @@ function renderTask(events){
   fillEmptyLines(tdWrap, todoItems.length + 1, 8);
 }
 
+
+function moveSelectedDate(days){
+  const next = addDays(AppState.selectedDate, days);
+  AppState.selectedDate = next;
+  const d = parseDate(next);
+  AppState.view = { year:d.getFullYear(), month:d.getMonth() };
+  renderCalendar();
+  renderPlannerPage(next);
+}
+function bindTimeTableNavigation(){
+  document.getElementById('ttPrevDay')?.addEventListener('click', ()=>moveSelectedDate(-1));
+  document.getElementById('ttNextDay')?.addEventListener('click', ()=>moveSelectedDate(1));
+  const tt = document.getElementById('fTime');
+  if(!tt) return;
+  let sx = 0, sy = 0, tracking = false;
+  tt.addEventListener('touchstart', e=>{
+    const t = e.touches && e.touches[0];
+    if(!t) return;
+    sx = t.clientX; sy = t.clientY; tracking = true;
+  }, {passive:true});
+  tt.addEventListener('touchend', e=>{
+    if(!tracking) return;
+    tracking = false;
+    const t = e.changedTouches && e.changedTouches[0];
+    if(!t) return;
+    const dx = t.clientX - sx;
+    const dy = t.clientY - sy;
+    if(Math.abs(dx) > 54 && Math.abs(dx) > Math.abs(dy) * 1.35){
+      moveSelectedDate(dx < 0 ? 1 : -1);
+    }
+  }, {passive:true});
+}
+
 function renderTimeTable(events){
   const wrap = document.getElementById('fTime');
   // 6시 ~ 다음날 3시 (총 22행). 라벨: 6..12, 1..12, 1..3
@@ -1946,13 +1979,15 @@ function renderTimeTable(events){
   const SPAN = 22 * 60;                       // 06:00 → 04:00 = 1320분
   let blocks = '';
   events.filter(e => e.startTime && e.endTime).forEach(e => {
+    if(isGoogleCalendarEvent(e)) return; // V3.0: Google Calendar 일정은 D-Day/일정에는 유지하되 Time Table에서는 제외
     const s = minutesSince6(e.startTime);
-    const en = minutesSince6(e.endTime);
-    if(s == null || en == null || en <= s) return;
-    const duration = en - s;
-    if(duration < 30) return;          // V2: 30분 미만 블록은 Task에만 표시해 잘림 방지
+    if(s == null) return;
+    const duration = durationMinutes(e.startTime, e.endTime);
+    if(duration < 30) return;          // 30분 미만 블록은 Task에만 표시해 잘림 방지
+    const visibleDuration = Math.min(duration, SPAN - s);
+    if(visibleDuration <= 0) return;
     const top = (s/SPAN)*100;
-    const hgt = (duration/SPAN)*100;
+    const hgt = (visibleDuration/SPAN)*100;
     const isTodo = e.type === 'todo';
     const bg = isTodo ? `background:${tagColor(e.tag||'기타')};` : '';
     const cls = isTodo ? 'todo' : e.type;
@@ -1968,6 +2003,15 @@ function renderTimeTable(events){
 
 /* ---------- 보조 함수 ---------- */
 function toMin(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
+function durationMinutes(start, end){
+  if(!/^\d{2}:\d{2}$/.test(start || '') || !/^\d{2}:\d{2}$/.test(end || '')) return 0;
+  let d = toMin(end) - toMin(start);
+  if(d <= 0) d += 24 * 60; // 종료 시각이 시작 시각보다 빠르거나 같으면 다음날 종료로 간주
+  return d > 0 ? d : 0;
+}
+function isGoogleCalendarEvent(e){
+  return e && e.source === 'google-calendar';
+}
 function minutesSince6(t){
   const v = toMin(t);
   return ((v - 360) + 1440) % 1440;   // 06:00=0 / 새벽시간은 아래쪽으로
@@ -2794,9 +2838,7 @@ function todoPlannedMinutes(e){
   const start = e.startTime || m.start || '';
   const end = e.endTime || m.end || '';
   if(!/^\d{2}:\d{2}$/.test(start) || !/^\d{2}:\d{2}$/.test(end)) return 0;
-  let d = toMin(end) - toMin(start);
-  if(d < 0) d += 24 * 60;
-  return d > 0 ? d : 0;
+  return durationMinutes(start, end);
 }
 function todoPlannedTag(e){
   const m = todoMeta[e.id] || {};
@@ -3282,6 +3324,7 @@ document.addEventListener('click', function(e){
   loadWeeklyDayNotes();
   bindWeeklyUI();
   bindWeeklyDetailUI();
+  bindTimeTableNavigation();
   EventsStore.reattachTodoMeta();
   const t = parseDate(todayStr());
   AppState.view = { year: t.getFullYear(), month: t.getMonth() };
