@@ -1751,8 +1751,9 @@ function renderPlannerPage(date, opts){
   /* D-DAY — 일반 날짜 기준 */
   renderDday(date);
 
-  /* TASK — 일반 날짜 기준 00:00~24:00 */
-  renderTask(events);
+  /* TASK — 공부일 기준으로 표시/정렬
+     예: 10/01 01:00 할 일은 09/30 공부일의 22:00 할 일 아래에 표시 */
+  renderTask(studyTodos);
 
   /* MEMO — 일반 날짜 기준 */
   const note = Storage.getDayNote(date);
@@ -1893,8 +1894,9 @@ function buildTaskLine(e, showBadge){
 function sortItems(arr){
   return arr.slice().sort((a,b)=>{
     if(!!a.done !== !!b.done) return a.done ? 1 : -1;
-    const ta=a.startTime||'99:99', tb=b.startTime||'99:99';
-    return ta===tb ? TYPE_PRIORITY[a.type]-TYPE_PRIORITY[b.type] : ta.localeCompare(tb);
+    const ta = taskSortMinute(a), tb = taskSortMinute(b);
+    if(ta !== tb) return ta - tb;
+    return TYPE_PRIORITY[a.type]-TYPE_PRIORITY[b.type];
   });
 }
 function fillEmptyLines(wrap, used, min){
@@ -2098,6 +2100,14 @@ function studyTodosByStudyDate(dateStr){
   return EventsStore.getAll().filter(e =>
     e && e.type === 'todo' && e.startTime && e.endTime && studyDateForTodo(e) === dateStr
   );
+}
+function taskSortMinute(e){
+  if(e && e.type === 'todo' && e.startTime){
+    const s = studyOffsetMin(e);
+    if(s != null) return s;
+  }
+  const t = e && e.startTime ? e.startTime : '99:99';
+  return /^\d{2}:\d{2}$/.test(t) ? toMin(t) : 99999;
 }
 function minutesSince6(t){
   const v = toMin(t);
