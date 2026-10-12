@@ -1496,23 +1496,39 @@ async function syncTasks(){  if(!isTokenValid()) return;
 /* 할일 추가 — 연결 시 구글 Tasks, 아니면 로컬. meta={start,end,tag} */
 function addTodoSmart(date, title, meta){
   meta = meta || {};
-  const hasMeta = meta.start || meta.end || meta.tag;
+  const hasMeta = meta.start || meta.end || meta.tag || meta.studyDate;
+  const metaPayload = {
+    start: meta.start || '',
+    end: meta.end || '',
+    tag: meta.tag || '',
+    studyDate: meta.studyDate || studyDateFromActualDate(date, meta.start || '')
+  };
   if(isTokenValid()){
     setSyncStatus('할일 추가 중…');
     return gtaskInsert(title, date)
       .then(created=>{
         if(hasMeta && created && created.id){
-          todoMeta[created.id] = { start:meta.start||'', end:meta.end||'', tag:meta.tag||'' };
+          todoMeta[created.id] = metaPayload;
           Storage.setTodoMeta(todoMeta);
           scheduleNotesSave();
         }
         return syncTasks();
       })
-      .catch(err=>{ console.error(err); const e=EventsStore.addTodo(date, title); if(hasMeta){ todoMeta[e.id]={start:meta.start||'',end:meta.end||'',tag:meta.tag||''}; Storage.setTodoMeta(todoMeta); EventsStore.reattachTodoMeta(); } renderCalendar(); renderPlannerPage(AppState.selectedDate); });
+      .catch(err=>{
+        console.error(err);
+        const e=EventsStore.addTodo(date, title);
+        if(hasMeta){
+          todoMeta[e.id]=metaPayload;
+          Storage.setTodoMeta(todoMeta);
+          EventsStore.reattachTodoMeta();
+        }
+        renderCalendar();
+        renderPlannerPage(AppState.selectedDate);
+      });
   } else {
     const e = EventsStore.addTodo(date, title);
     if(hasMeta){
-      todoMeta[e.id] = { start:meta.start||'', end:meta.end||'', tag:meta.tag||'' };
+      todoMeta[e.id] = metaPayload;
       Storage.setTodoMeta(todoMeta);
       EventsStore.reattachTodoMeta();
     }
@@ -2081,13 +2097,27 @@ function weekDatesFor(dateStr){
   const start = weekStartDate(dateStr);
   return Array.from({length:7}, (_,i)=>addDays(start, i));
 }
+function isEarlyStudyTime(start){
+  return /^\d{2}:\d{2}$/.test(start || '') && toMin(start) < STUDY_DAY_START_MIN;
+}
+function studyDateFromActualDate(date, start){
+  if(!date) return date;
+  return isEarlyStudyTime(start) ? addDays(date, -1) : date;
+}
+function actualDateFromStudyInput(date, start, baseStudyDate){
+  // 선택한 공부일에서 00:00~05:59를 입력하면 실제 달력 날짜는 다음날이다.
+  // 예: 10/12 공부일 + 01:30 입력 → 실제 날짜 10/13, 공부일 귀속 10/12
+  if(date && baseStudyDate && date === baseStudyDate && isEarlyStudyTime(start)){
+    return addDays(date, 1);
+  }
+  return date;
+}
 function studyDateForTodo(e){
   if(!e || e.type !== 'todo' || !e.date) return e && e.date;
-  const start = (e.startTime || (todoMeta[e.id] && todoMeta[e.id].start) || '');
-  if(/^\d{2}:\d{2}$/.test(start) && toMin(start) < STUDY_DAY_START_MIN){
-    return addDays(e.date, -1);
-  }
-  return e.date;
+  const m = todoMeta[e.id] || {};
+  const start = (e.startTime || m.start || '');
+  if(m.studyDate) return m.studyDate; // 앱에서 생성/수정한 새벽 할일은 기준 공부일을 명시 저장
+  return studyDateFromActualDate(e.date, start);
 }
 function studyOffsetMin(e){
   const start = e && e.startTime;
@@ -2364,26 +2394,34 @@ document.getElementById('tdTagCustom').addEventListener('keydown', (e)=>{
 });
 document.getElementById('saveTodo').addEventListener('click', ()=>{
   const title = document.getElementById('tdTitle').value.trim();
-  const date  = document.getElementById('tdDate').value;
+  const inputDate  = document.getElementById('tdDate').value;
   if(!title){ document.getElementById('tdTitle').focus(); return; }
-  if(!date){ document.getElementById('tdDate').focus(); return; }
+  if(!inputDate){ document.getElementById('tdDate').focus(); return; }
   const start = document.getElementById('tdStart').value;
   const end   = document.getElementById('tdEnd').value;
   let tag = document.getElementById('tdTag').value;
   if(tag === '__custom'){                       // 직접 추가 입력 중 저장한 경우
     tag = addSubjectTag(document.getElementById('tdTagCustom').value) || '기타';
   }
-  AppState.selectedDate = date;
-  AppState.view = { year: parseDate(date).getFullYear(), month: parseDate(date).getMonth() };
   const editing = editingTodo;
+  const baseStudyDate = AppState.selectedDate;
+  const date = editing ? inputDate : actualDateFromStudyInput(inputDate, start, baseStudyDate);
+  const studyDate = editing ? studyDateFromActualDate(date, start) : (isEarlyStudyTime(start) && inputDate === baseStudyDate ? baseStudyDate : studyDateFromActualDate(date, start));
+  AppState.selectedDate = studyDate || inputDate;
+  AppState.view = { year: parseDate(AppState.selectedDate).getFullYear(), month: parseDate(AppState.selectedDate).getMonth() };
   closeTodoModal();
-  if(editing){ updateTodoEdit(editing, { title, date, start, end, tag }); }
-  else { addTodoSmart(date, title, { start, end, tag }); }
+  if(editing){ updateTodoEdit(editing, { title, date, start, end, tag, studyDate }); }
+  else { addTodoSmart(date, title, { start, end, tag, studyDate }); }
 });
 /* 할일 수정 저장 */
 function updateTodoEdit(e, f){
-  // 시간·태그 메타 갱신
-  todoMeta[e.id] = { start:f.start||'', end:f.end||'', tag:f.tag||'' };
+  // 시간·태그·공부일 메타 갱신
+  todoMeta[e.id] = {
+    start:f.start||'',
+    end:f.end||'',
+    tag:f.tag||'',
+    studyDate:f.studyDate || studyDateFromActualDate(f.date, f.start || '')
+  };
   Storage.setTodoMeta(todoMeta);
   scheduleNotesSave();
   if(e.source === 'google-tasks' && isTokenValid()){
